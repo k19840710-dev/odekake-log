@@ -2,16 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Google Maps の InfoWindow 標準の閉じるボタンは内側・下寄りに見えるため、
-   カード右上の「閉じるボタン」らしい位置に少しだけ寄せる。
-   本文（店名の1行目）と縦位置が揃うよう、上端ぎりぎりではなく
-   本文の開始位置に近い高さへ配置する。
-   Google側のDOM/クラス名が変わってもレイアウトが崩れないよう、
-   位置調整のみを行い、要素の削除・重複描画は一切行わない。 */
+/* 閉じるボタンを「店名の隣」ではなく「カード右上の独立した角」に
+   固定する。Googleのデフォルトだと、ボタンの位置がheader行自身の
+   余白・幅に引きずられて店名寄りにずれることがあるため、
+   ボタンを.gm-style-iw-c（カード本体）基準で直接絶対配置し、
+   header行側の余白もすべてリセットして影響を断つ。
+   店名の長さに関わらず×の位置が動かないよう、店名側の余白
+   （JS側のtitle要素のpadding-right）とは独立してここで完結させる。 */
+.gm-style-iw-c {
+  position: relative !important;
+}
+.gm-style-iw-chr {
+  margin: 0 !important;
+  padding: 0 !important;
+}
 .gm-style-iw-c > button.gm-ui-hover-effect,
 .gm-style-iw-chr > button.gm-ui-hover-effect {
-  top: 9px !important;
-  right: 3px !important;
+  position: absolute !important;
+  top: 10px !important;
+  right: 10px !important;
+  left: auto !important;
+  margin: 0 !important;
 }
 
 /* ×アイコン自体の表示サイズを明確に縮小する。ボタン本体

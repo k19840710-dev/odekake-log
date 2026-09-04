@@ -1815,7 +1815,7 @@ function OdekakeLogMain() {
               activeTab === 'logs' ? 'text-sky-600 font-bold' : 'text-neutral-400 hover:text-neutral-600 font-medium'
             }`}
           >
-            <Calendar className="w-[22px] h-[22px]" />
+            <Calendar className="w-[20px] h-[20px]" />
             <span className="text-[10px]">記録</span>
           </button>
 
@@ -1825,7 +1825,7 @@ function OdekakeLogMain() {
               activeTab === 'calendar' ? 'text-sky-600 font-bold' : 'text-neutral-400 hover:text-neutral-600 font-medium'
             }`}
           >
-            <CalendarDays className="w-[22px] h-[22px]" />
+            <CalendarDays className="w-[20px] h-[20px]" />
             <span className="text-[10px]">カレンダー</span>
           </button>
 
@@ -1835,7 +1835,7 @@ function OdekakeLogMain() {
               activeTab === 'places' ? 'text-sky-600 font-bold' : 'text-neutral-400 hover:text-neutral-600 font-medium'
             }`}
           >
-            <Clock className="w-[22px] h-[22px]" />
+            <Clock className="w-[20px] h-[20px]" />
             <span className="text-[10px]">場所</span>
           </button>
 
@@ -1845,7 +1845,7 @@ function OdekakeLogMain() {
               activeTab === 'map' ? 'text-sky-600 font-bold' : 'text-neutral-400 hover:text-neutral-600 font-medium'
             }`}
           >
-            <MapIcon className="w-[22px] h-[22px]" />
+            <MapIcon className="w-[20px] h-[20px]" />
             <span className="text-[10px]">マップ</span>
           </button>
         </nav>
@@ -2588,8 +2588,8 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-5">
-      <div className="w-full max-w-[560px] bg-white rounded-3xl max-h-[93vh] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-6">
+      <div className="w-full max-w-[540px] bg-white rounded-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
         {/* モーダルヘッダー：タイトルと下の区切り線が間延びしないよう、
             下側のpaddingは控えめにする（上側・アイコンは現状維持） */}
         <div className="px-[26px] pt-4 pb-[10px] flex items-center justify-between flex-shrink-0">
@@ -2612,7 +2612,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-        <div className="px-[26px] py-[15px] overflow-y-auto space-y-[13px] flex-1 min-h-0">
+        <div className="px-[26px] pt-2 pb-[15px] overflow-y-auto space-y-[13px] flex-1 min-h-0">
 
           <PlaceSearchField
             isMapsLoaded={isMapsLoaded}
