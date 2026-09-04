@@ -55,12 +55,12 @@ function generateUUID() {
 // カテゴリー定義
 // ==========================================
 const CATEGORIES = {
-  food: { label: 'グルメ・飲食店', icon: Utensils, emoji: '🍽️', color: '#f97316', bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
-  cafe: { label: 'カフェ・喫茶', icon: Coffee, emoji: '☕', color: '#8b5cf6', bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
-  shopping: { label: 'ショッピング', icon: ShoppingBag, emoji: '🛍️', color: '#ec4899', bg: 'bg-pink-50', text: 'text-pink-700', border: 'border-pink-200' },
-  sightseeing: { label: '観光・散策・公園', icon: Camera, emoji: '📸', color: '#0ea5e9', bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
-  hotel: { label: 'ホテル・宿泊', icon: Building2, emoji: '🏨', color: '#059669', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
-  other: { label: 'その他施設・駅', icon: MapPin, emoji: '📍', color: '#64748b', bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200' }
+  food: { label: 'グルメ・飲食店', shortLabel: 'グルメ', icon: Utensils, emoji: '🍽️', color: '#f97316', bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
+  cafe: { label: 'カフェ・喫茶', shortLabel: 'カフェ', icon: Coffee, emoji: '☕', color: '#8b5cf6', bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
+  shopping: { label: 'ショッピング', shortLabel: 'ショッピング', icon: ShoppingBag, emoji: '🛍️', color: '#ec4899', bg: 'bg-pink-50', text: 'text-pink-700', border: 'border-pink-200' },
+  sightseeing: { label: '観光・散策・公園', shortLabel: '観光', icon: Camera, emoji: '📸', color: '#0ea5e9', bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
+  hotel: { label: 'ホテル・宿泊', shortLabel: 'ホテル', icon: Building2, emoji: '🏨', color: '#059669', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  other: { label: 'その他施設・駅', shortLabel: 'その他', icon: MapPin, emoji: '📍', color: '#64748b', bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200' }
 };
 
 // カテゴリーの絵文字＋色から、地図ピン用のSVGアイコン（data URI）を作る
@@ -1219,9 +1219,13 @@ function OdekakeLogMain() {
         {/* メインエリア */}
         <main className="flex-1 overflow-y-auto px-4 lg:px-8 py-3 lg:py-5">
 
-          {/* 検索・絞り込み（記録・場所タブ） */}
+          {/* 検索・絞り込み（記録・場所タブ）：検索→カテゴリで1つの絞り込み
+              グループに見えるよう間隔を詰め、カテゴリは横スクロールさせず
+              短い表示名で原則2段に収める。下に続く表示切り替え（月別/旅行別/
+              エリア別、訪問済み/行きたい）とは、余白＋薄い区切り線で
+              別グループだと分かるようにする。 */}
           {(activeTab === 'logs' || activeTab === 'places') && (
-            <div className="mb-3 space-y-2 lg:max-w-md">
+            <div className="mb-4 space-y-2 lg:max-w-md">
               <div className="relative">
                 <Search className="w-[21px] h-[21px] absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                 <input
@@ -1241,7 +1245,7 @@ function OdekakeLogMain() {
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-1.5 text-xs">
+              <div className="flex flex-wrap justify-center gap-1.5 text-xs">
                 <button
                   onClick={() => setSelectedCategory('all')}
                   className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap ${
@@ -1263,10 +1267,12 @@ function OdekakeLogMain() {
                     }`}
                   >
                     <cat.icon className="w-4 h-4" />
-                    <span>{cat.label}</span>
+                    <span>{cat.shortLabel}</span>
                   </button>
                 ))}
               </div>
+
+              <div className="mt-2 border-t border-neutral-100" />
             </div>
           )}
 
@@ -1516,7 +1522,7 @@ function OdekakeLogMain() {
                               </div>
                             </div>
                             <div className="mt-1.5 flex items-center gap-1 px-0.5 text-[11px] text-neutral-500">
-                              <span className="text-amber-400">{'★'.repeat(Math.round(place.avgRating) || 0)}</span>
+                              <StarRating rating={place.avgRating} sizeClass="w-3 h-3" />
                               <span>平均評価 {place.avgRating.toFixed(1)}</span>
                             </div>
 
@@ -2612,7 +2618,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-        <div className="px-[26px] pt-2 pb-[15px] overflow-y-auto space-y-[13px] flex-1 min-h-0">
+        <div className="px-[26px] pt-[3px] pb-[15px] overflow-y-auto space-y-[13px] flex-1 min-h-0">
 
           <PlaceSearchField
             isMapsLoaded={isMapsLoaded}
@@ -2668,11 +2674,13 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
                   onChange={(e) => setRating(Number(e.target.value))}
                   className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm pl-2.5 pr-7 py-[7px] text-[12.5px] text-neutral-800 focus:outline-none"
                 >
-                  <option value={5}>⭐⭐⭐⭐⭐ (5点)</option>
-                  <option value={4}>⭐⭐⭐⭐ (4点)</option>
-                  <option value={3}>⭐⭐⭐ (3点)</option>
-                  <option value={2}>⭐⭐ (2点)</option>
-                  <option value={1}>⭐ (1点)</option>
+                  {/* ネイティブ<select>の<option>はJSXアイコンを描画できないため、
+                      絵文字ではなく記号としてのテキスト星（★）を使う */}
+                  <option value={5}>★★★★★ (5点)</option>
+                  <option value={4}>★★★★ (4点)</option>
+                  <option value={3}>★★★ (3点)</option>
+                  <option value={2}>★★ (2点)</option>
+                  <option value={1}>★ (1点)</option>
                 </select>
                 <ChevronDown className="w-[18px] h-[18px] text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
@@ -2872,6 +2880,25 @@ function WishlistFormModal({ onClose, isMapsLoaded, onOpenApiKeyModal, onToast, 
 }
 
 // ==========================================
+// 星評価表示（絵文字ではなくLucideのStarアイコンで統一）
+// ==========================================
+function StarRating({ rating = 0, sizeClass = 'w-3 h-3' }) {
+  const rounded = Math.round(rating);
+  return (
+    <span className="inline-flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map(i => (
+        <Star
+          key={i}
+          className={`${sizeClass} ${i <= rounded ? 'text-amber-400' : 'text-neutral-300'}`}
+          fill={i <= rounded ? 'currentColor' : 'none'}
+          strokeWidth={i <= rounded ? 0 : 1.5}
+        />
+      ))}
+    </span>
+  );
+}
+
+// ==========================================
 // 訪問記録カード（記録タブ・旅行詳細・エリア詳細で共通利用）
 // ==========================================
 function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit }) {
@@ -2926,9 +2953,7 @@ function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit }) {
               )}
             </div>
           )}
-          <div className="flex text-amber-400 text-xs">
-            {'★'.repeat(item.rating || 5)}
-          </div>
+          <StarRating rating={item.rating || 5} sizeClass="w-3 h-3" />
         </div>
       </div>
 
@@ -3248,7 +3273,7 @@ function CalendarVisitRow({ item, onClick }) {
           {cat.label}
         </span>
         <h4 className="text-xs font-bold text-neutral-900 mt-1 truncate">{item.place.name}</h4>
-        <span className="text-amber-400 text-[11px]">{'★'.repeat(item.rating || 5)}</span>
+        <StarRating rating={item.rating || 5} sizeClass="w-2.5 h-2.5" />
         {item.note && (
           <p className="text-[11px] text-neutral-500 mt-0.5 truncate">{item.note}</p>
         )}
@@ -3469,7 +3494,7 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onAddVisit, onDeletePla
                     <span className="font-bold text-neutral-800">
                       {formatDateWithWeekday(v.date)}
                     </span>
-                    <span className="text-amber-400">{'★'.repeat(v.rating || 5)}</span>
+                    <StarRating rating={v.rating || 5} sizeClass="w-3 h-3" />
                   </div>
                   {v.note && (
                     <p className="text-xs text-neutral-600 mt-1.5 leading-relaxed">
