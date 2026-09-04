@@ -2598,7 +2598,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
       <div className="w-full max-w-[540px] bg-white rounded-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
         {/* モーダルヘッダー：タイトルと下の区切り線が間延びしないよう、
             下側のpaddingは控えめにする（上側・アイコンは現状維持） */}
-        <div className="px-[26px] pt-4 pb-[10px] flex items-center justify-between flex-shrink-0">
+        <div className="px-[26px] pt-4 pb-[4px] flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
               <MapPin className="w-[24px] h-[24px]" />
