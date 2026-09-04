@@ -1152,7 +1152,7 @@ function OdekakeLogMain() {
           <div className="flex items-center gap-2 lg:gap-6">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-sky-500 text-white flex items-center justify-center shadow-sm">
-                <MapPin className="w-4 h-4" />
+                <MapPin className="w-[18px] h-[18px]" />
               </div>
               <div>
                 <h1 className="text-sm font-black text-neutral-900 tracking-tight">おでかけログ</h1>
@@ -1175,7 +1175,7 @@ function OdekakeLogMain() {
                     activeTab === key ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5" />
+                  <Icon className="w-4 h-4" />
                   <span>{label}</span>
                 </button>
               ))}
@@ -1191,7 +1191,7 @@ function OdekakeLogMain() {
               }`}
               title="Google Maps APIキー設定"
             >
-              <Key className="w-4 h-4" />
+              <Key className="w-[18px] h-[18px]" />
             </button>
 
             {/* 新規登録ボタン */}
@@ -1203,7 +1203,7 @@ function OdekakeLogMain() {
               }}
               className="flex items-center gap-1 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm transition-all active:scale-95"
             >
-              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              <Plus className="w-4 h-4 stroke-[2.5]" />
               <span>記録する</span>
             </button>
           </div>
@@ -1213,7 +1213,7 @@ function OdekakeLogMain() {
         {!apiKey && (
           <div className="bg-amber-50/90 border-b border-amber-200 px-4 lg:px-8 py-2 flex items-center justify-between text-xs text-amber-800">
             <div className="flex items-center gap-1.5 text-[11px]">
-              <AlertCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+              <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
               <span>APIキー未設定：デモ候補検索＆簡易マップで動作中</span>
             </div>
             <button
@@ -1232,7 +1232,7 @@ function OdekakeLogMain() {
           {(activeTab === 'logs' || activeTab === 'places') && (
             <div className="mb-3 space-y-2 lg:max-w-md">
               <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                <Search className="w-[18px] h-[18px] absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                 <input
                   type="text"
                   placeholder="店名、住所、メモから検索..."
@@ -1245,7 +1245,7 @@ function OdekakeLogMain() {
                     onClick={() => setSearchQuery('')}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-4 h-4" />
                   </button>
                 )}
               </div>
@@ -1271,7 +1271,7 @@ function OdekakeLogMain() {
                         : 'bg-white text-neutral-600 border-neutral-200'
                     }`}
                   >
-                    <cat.icon className="w-3 h-3" />
+                    <cat.icon className="w-3.5 h-3.5" />
                     <span>{cat.label}</span>
                   </button>
                 ))}
@@ -1289,7 +1289,7 @@ function OdekakeLogMain() {
                     logsGroupBy === 'month' ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500'
                   }`}
                 >
-                  <Calendar className="w-3 h-3" />
+                  <Calendar className="w-3.5 h-3.5" />
                   <span>月別</span>
                 </button>
                 <button
@@ -1298,7 +1298,7 @@ function OdekakeLogMain() {
                     logsGroupBy === 'trip' ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500'
                   }`}
                 >
-                  <Plane className="w-3 h-3" />
+                  <Plane className="w-3.5 h-3.5" />
                   <span>旅行別</span>
                 </button>
                 <button
@@ -1307,7 +1307,7 @@ function OdekakeLogMain() {
                     logsGroupBy === 'area' ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500'
                   }`}
                 >
-                  <MapPinned className="w-3 h-3" />
+                  <MapPinned className="w-3.5 h-3.5" />
                   <span>エリア別</span>
                 </button>
               </div>
@@ -1358,7 +1358,7 @@ function OdekakeLogMain() {
                     onClick={() => setIsTripFormModalOpen(true)}
                     className="flex items-center gap-1 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm transition-all active:scale-95 w-fit"
                   >
-                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <Plus className="w-4 h-4 stroke-[2.5]" />
                     <span>旅行を作成</span>
                   </button>
 
@@ -1390,7 +1390,7 @@ function OdekakeLogMain() {
                   logsGroupedByArea.map((city) => (
                     <div key={city.cityLabel} className="space-y-2">
                       <div className="flex items-center gap-1.5 text-xs font-black text-neutral-700 px-1">
-                        <MapPinned className="w-3.5 h-3.5 text-sky-500" />
+                        <MapPinned className="w-4 h-4 text-sky-500" />
                         <span>{city.cityLabel}</span>
                         <span className="text-neutral-400 font-normal">（{city.total}件）</span>
                       </div>
@@ -1439,7 +1439,7 @@ function OdekakeLogMain() {
                       placesSubView === 'visited' ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500'
                     }`}
                   >
-                    <Compass className="w-3 h-3" />
+                    <Compass className="w-3.5 h-3.5" />
                     <span>訪問済み ({placesGroupedByArea.reduce((n, g) => n + g.items.length, 0)})</span>
                   </button>
                   <button
@@ -1448,7 +1448,7 @@ function OdekakeLogMain() {
                       placesSubView === 'wishlist' ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500'
                     }`}
                   >
-                    <Bookmark className="w-3 h-3" />
+                    <Bookmark className="w-3.5 h-3.5" />
                     <span>行きたい ({wishlist.length})</span>
                   </button>
                 </div>
@@ -1458,7 +1458,7 @@ function OdekakeLogMain() {
                     onClick={() => setIsWishlistModalOpen(true)}
                     className="flex items-center gap-1 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm transition-all active:scale-95"
                   >
-                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <Plus className="w-4 h-4 stroke-[2.5]" />
                     <span>行きたい場所を追加</span>
                   </button>
                 )}
@@ -1473,7 +1473,7 @@ function OdekakeLogMain() {
                   placesGroupedByArea.map(({ area, items }) => (
                     <div key={area} className="space-y-2.5">
                       <div className="flex items-center gap-1.5 text-xs font-black text-neutral-700 px-1">
-                        <Compass className="w-3.5 h-3.5 text-sky-500" />
+                        <Compass className="w-4 h-4 text-sky-500" />
                         <span>{area}</span>
                         <span className="text-neutral-400 font-normal">({items.length}箇所)</span>
                       </div>
@@ -1493,7 +1493,7 @@ function OdekakeLogMain() {
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0 flex-1">
                                 <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
-                                  <cat.icon className="w-3 h-3" />
+                                  <cat.icon className="w-3.5 h-3.5" />
                                   {cat.label}
                                 </span>
                                 <h3 className="text-sm font-bold text-neutral-900 leading-snug mt-1.5">
@@ -1508,14 +1508,14 @@ function OdekakeLogMain() {
                                 <span className="text-xs font-black text-sky-700 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-100 whitespace-nowrap">
                                   計 {place.visitCount} 回
                                 </span>
-                                <ChevronRight className="w-4 h-4 text-neutral-300" />
+                                <ChevronRight className="w-[18px] h-[18px] text-neutral-300" />
                               </div>
                             </div>
 
                             {/* 集計サマリー（詳細な訪問履歴は「記録」タブかカードをタップして確認） */}
                             <div className="mt-3.5 flex items-center justify-between text-xs bg-neutral-50 p-2.5 rounded-xl border border-neutral-150">
                               <span className="font-medium text-neutral-600 flex items-center gap-1">
-                                <Clock className="w-3.5 h-3.5 text-sky-500" />
+                                <Clock className="w-4 h-4 text-sky-500" />
                                 最後に訪れた日:
                               </span>
                               <div className="text-right">
@@ -1542,7 +1542,7 @@ function OdekakeLogMain() {
                                   rel="noopener noreferrer"
                                   className="text-neutral-600 hover:text-neutral-900 font-semibold flex items-center gap-1 text-[11px]"
                                 >
-                                  <ExternalLink className="w-3 h-3 text-neutral-400" />
+                                  <ExternalLink className="w-3.5 h-3.5 text-neutral-400" />
                                   <span>Googleマップ</span>
                                 </a>
                               )}
@@ -1551,7 +1551,7 @@ function OdekakeLogMain() {
                                 className="text-neutral-400 hover:text-sky-600 p-1 flex-shrink-0"
                                 title="マップでピンを見る"
                               >
-                                <MapIcon className="w-3.5 h-3.5" />
+                                <MapIcon className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => {
@@ -1578,7 +1578,7 @@ function OdekakeLogMain() {
                   {!userLocation ? (
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-1.5 text-xs text-sky-900 font-bold">
-                        <Navigation className="w-3.5 h-3.5 text-sky-600" />
+                        <Navigation className="w-4 h-4 text-sky-600" />
                         <span>近くの保存済みスポットを確認</span>
                       </div>
                       <button
@@ -1586,7 +1586,7 @@ function OdekakeLogMain() {
                         disabled={isLocatingNearby}
                         className="bg-sky-500 hover:bg-sky-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-full disabled:opacity-60 flex items-center gap-1"
                       >
-                        {isLocatingNearby && <RefreshCw className="w-3 h-3 animate-spin" />}
+                        {isLocatingNearby && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                         <span>{isLocatingNearby ? '取得中...' : '現在地から探す'}</span>
                       </button>
                     </div>
@@ -1598,10 +1598,10 @@ function OdekakeLogMain() {
                         className="w-full flex items-center justify-between gap-2 text-left"
                       >
                         <span className="flex items-center gap-1.5 text-xs font-bold text-sky-900">
-                          <Navigation className="w-3.5 h-3.5 text-sky-600 flex-shrink-0" />
+                          <Navigation className="w-4 h-4 text-sky-600 flex-shrink-0" />
                           <span>近くに保存済みの場所が {nearbyWishlist.length} 件あります</span>
                         </span>
-                        <ChevronDown className={`w-4 h-4 text-sky-600 flex-shrink-0 transition-transform ${isNearbyPanelOpen ? 'rotate-180' : ''}`} />
+                        <ChevronDown className={`w-[18px] h-[18px] text-sky-600 flex-shrink-0 transition-transform ${isNearbyPanelOpen ? 'rotate-180' : ''}`} />
                       </button>
 
                       {isNearbyPanelOpen && (
@@ -1629,7 +1629,7 @@ function OdekakeLogMain() {
                               onClick={handleFindNearbyWishlist}
                               className="ml-auto flex-shrink-0 flex items-center gap-1 text-sky-700 font-bold px-2 py-1"
                             >
-                              <RefreshCw className={`w-3 h-3 ${isLocatingNearby ? 'animate-spin' : ''}`} />
+                              <RefreshCw className={`w-3.5 h-3.5 ${isLocatingNearby ? 'animate-spin' : ''}`} />
                               <span>現在地を更新</span>
                             </button>
                           </div>
@@ -1648,7 +1648,7 @@ function OdekakeLogMain() {
                                       <div className="min-w-0">
                                         <div className="flex items-center gap-1.5">
                                           <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border} flex-shrink-0`}>
-                                            <cat.icon className="w-2.5 h-2.5" />
+                                            <cat.icon className="w-3 h-3" />
                                             {cat.label}
                                           </span>
                                           <span className="text-xs font-bold text-neutral-900 truncate">{wish.name}</span>
@@ -1667,7 +1667,7 @@ function OdekakeLogMain() {
                                           rel="noopener noreferrer"
                                           className="text-neutral-600 hover:text-neutral-900 font-semibold flex items-center gap-1"
                                         >
-                                          <ExternalLink className="w-3 h-3 text-neutral-400" />
+                                          <ExternalLink className="w-3.5 h-3.5 text-neutral-400" />
                                           <span>Googleマップ</span>
                                         </a>
                                       ) : <span />}
@@ -1675,7 +1675,7 @@ function OdekakeLogMain() {
                                         onClick={() => handleConvertWishlistToVisit(wish)}
                                         className="bg-sky-500 hover:bg-sky-600 text-white px-2.5 py-1 rounded-lg font-bold flex items-center gap-1"
                                       >
-                                        <Sparkles className="w-3 h-3" />
+                                        <Sparkles className="w-3.5 h-3.5" />
                                         <span>訪問を記録</span>
                                       </button>
                                     </div>
@@ -1704,7 +1704,7 @@ function OdekakeLogMain() {
                   wishlistGroupedByArea.map(({ area, items }) => (
                     <div key={area} className="space-y-2.5">
                       <div className="flex items-center gap-1.5 text-xs font-black text-neutral-700 px-1">
-                        <Compass className="w-3.5 h-3.5 text-sky-500" />
+                        <Compass className="w-4 h-4 text-sky-500" />
                         <span>{area}</span>
                         <span className="text-neutral-400 font-normal">({items.length}箇所)</span>
                       </div>
@@ -1721,7 +1721,7 @@ function OdekakeLogMain() {
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1.5">
                                   <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border} flex-shrink-0`}>
-                                    <cat.icon className="w-3 h-3" />
+                                    <cat.icon className="w-3.5 h-3.5" />
                                     {cat.label}
                                   </span>
                                   <h3 className="text-sm font-bold text-neutral-900 truncate">
@@ -1732,7 +1732,7 @@ function OdekakeLogMain() {
                                   {wish.address || '住所未登録'}
                                 </p>
                               </div>
-                              <Bookmark className="w-4 h-4 text-sky-400 flex-shrink-0" fill="currentColor" />
+                              <Bookmark className="w-[18px] h-[18px] text-sky-400 flex-shrink-0" fill="currentColor" />
                             </div>
 
                             {wish.memo && (
@@ -1750,7 +1750,7 @@ function OdekakeLogMain() {
                                     rel="noopener noreferrer"
                                     className="text-neutral-600 hover:text-neutral-900 font-semibold flex items-center gap-1 text-[11px]"
                                   >
-                                    <ExternalLink className="w-3 h-3 text-neutral-400" />
+                                    <ExternalLink className="w-3.5 h-3.5 text-neutral-400" />
                                     <span>Googleマップ</span>
                                   </a>
                                 )}
@@ -1759,7 +1759,7 @@ function OdekakeLogMain() {
                                   className="text-neutral-400 hover:text-red-600 p-1"
                                   title="行きたい場所から削除"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <Trash2 className="w-4 h-4" />
                                 </button>
                               </div>
 
@@ -1767,7 +1767,7 @@ function OdekakeLogMain() {
                                 onClick={() => handleConvertWishlistToVisit(wish)}
                                 className="bg-sky-500 hover:bg-sky-600 text-white px-3 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1"
                               >
-                                <Sparkles className="w-3 h-3" />
+                                <Sparkles className="w-3.5 h-3.5" />
                                 <span>行った！を記録</span>
                               </button>
                             </div>
@@ -1821,41 +1821,41 @@ function OdekakeLogMain() {
         <nav className="lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-neutral-200 px-2 py-2 flex items-center justify-between z-40 shadow-lg">
           <button
             onClick={() => setActiveTab('logs')}
-            className={`flex-1 flex flex-col items-center gap-0.5 transition-colors ${
+            className={`flex-1 flex flex-col items-center gap-1 transition-colors ${
               activeTab === 'logs' ? 'text-sky-600 font-bold' : 'text-neutral-400 hover:text-neutral-600 font-medium'
             }`}
           >
-            <Calendar className="w-[18px] h-[18px]" />
+            <Calendar className="w-[21px] h-[21px]" />
             <span className="text-[10px]">記録</span>
           </button>
 
           <button
             onClick={() => setActiveTab('calendar')}
-            className={`flex-1 flex flex-col items-center gap-0.5 transition-colors ${
+            className={`flex-1 flex flex-col items-center gap-1 transition-colors ${
               activeTab === 'calendar' ? 'text-sky-600 font-bold' : 'text-neutral-400 hover:text-neutral-600 font-medium'
             }`}
           >
-            <CalendarDays className="w-[18px] h-[18px]" />
+            <CalendarDays className="w-[21px] h-[21px]" />
             <span className="text-[10px]">カレンダー</span>
           </button>
 
           <button
             onClick={() => setActiveTab('places')}
-            className={`flex-1 flex flex-col items-center gap-0.5 transition-colors ${
+            className={`flex-1 flex flex-col items-center gap-1 transition-colors ${
               activeTab === 'places' ? 'text-sky-600 font-bold' : 'text-neutral-400 hover:text-neutral-600 font-medium'
             }`}
           >
-            <Clock className="w-[18px] h-[18px]" />
+            <Clock className="w-[21px] h-[21px]" />
             <span className="text-[10px]">場所</span>
           </button>
 
           <button
             onClick={() => setActiveTab('map')}
-            className={`flex-1 flex flex-col items-center gap-0.5 transition-colors ${
+            className={`flex-1 flex flex-col items-center gap-1 transition-colors ${
               activeTab === 'map' ? 'text-sky-600 font-bold' : 'text-neutral-400 hover:text-neutral-600 font-medium'
             }`}
           >
-            <MapIcon className="w-[18px] h-[18px]" />
+            <MapIcon className="w-[21px] h-[21px]" />
             <span className="text-[10px]">マップ</span>
           </button>
         </nav>
@@ -1988,7 +1988,7 @@ function OdekakeLogMain() {
                       onClick={() => handleDeleteTrip(detailTrip.id)}
                       className="text-red-500 hover:text-red-700 flex items-center gap-1 text-[11px] font-semibold"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                       <span>旅行を削除</span>
                     </button>
                   </div>
@@ -2111,11 +2111,11 @@ function OdekakeLogMain() {
             <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
               <div className="flex items-center justify-between border-b border-neutral-150 pb-2">
                 <div className="flex items-center gap-1.5 text-neutral-900 font-bold text-sm">
-                  <Key className="w-4 h-4 text-sky-500" />
+                  <Key className="w-[18px] h-[18px] text-sky-500" />
                   <span>Google Maps APIキー</span>
                 </div>
                 <button onClick={() => setShowApiKeyModal(false)} className="text-neutral-400 p-1">
-                  <X className="w-4 h-4" />
+                  <X className="w-[18px] h-[18px]" />
                 </button>
               </div>
 
@@ -2161,7 +2161,7 @@ function OdekakeLogMain() {
                     onClick={handleExportData}
                     className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
                   >
-                    <Download className="w-3.5 h-3.5" />
+                    <Download className="w-4 h-4" />
                     <span>エクスポート</span>
                   </button>
                   <button
@@ -2169,7 +2169,7 @@ function OdekakeLogMain() {
                     onClick={() => importFileInputRef.current?.click()}
                     className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
                   >
-                    <Upload className="w-3.5 h-3.5" />
+                    <Upload className="w-4 h-4" />
                     <span>インポート</span>
                   </button>
                   <input
@@ -2443,7 +2443,7 @@ function PlaceSearchField({
         <>
           <div className="flex items-center justify-between">
             <label className="block text-xs font-black text-sky-950 flex items-center gap-1.5">
-              <Search className="w-3.5 h-3.5 text-sky-600" />
+              <Search className="w-4 h-4 text-sky-600" />
               <span>お店・場所を検索</span>
               <span className="text-[10px] bg-sky-500 text-white px-1.5 py-0.2 rounded font-bold">必須</span>
             </label>
@@ -2510,7 +2510,7 @@ function PlaceSearchField({
                     className="text-[10px] text-sky-600 hover:underline flex items-center gap-0.5"
                   >
                     <span>Googleマップで確認</span>
-                    <ExternalLink className="w-2.5 h-2.5" />
+                    <ExternalLink className="w-3 h-3" />
                   </a>
                 )}
               </div>
@@ -2600,20 +2600,20 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
-      <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+      <div className="w-full max-w-md bg-white rounded-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
         {/* モーダルヘッダー */}
         <div className="px-5 py-3.5 border-b border-neutral-150 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
-              <MapPin className="w-4 h-4" />
+              <MapPin className="w-[18px] h-[18px]" />
             </div>
             <h3 className="text-sm font-bold text-neutral-900">
               {initialVisit ? '訪問記録の編集' : '行った場所を記録'}
             </h3>
           </div>
-          <button onClick={onClose} className="p-1 text-neutral-400 hover:text-neutral-600 rounded-lg">
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="p-1.5 -mr-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg">
+            <X className="w-[22px] h-[22px]" />
           </button>
         </div>
 
@@ -2635,7 +2635,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
           {/* 訪問日 */}
           <div>
             <label className="block text-xs font-bold text-neutral-700 mb-1 flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5 text-sky-500" />
+              <Calendar className="w-4 h-4 text-sky-500" />
               <span>訪問日</span>
             </label>
             <input
@@ -2661,7 +2661,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
                     <option key={k} value={k}>{cat.label}</option>
                   ))}
                 </select>
-                <ChevronDown className="w-3.5 h-3.5 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <ChevronDown className="w-4 h-4 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
 
@@ -2679,7 +2679,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
                   <option value={2}>⭐⭐ (2点)</option>
                   <option value={1}>⭐ (1点)</option>
                 </select>
-                <ChevronDown className="w-3.5 h-3.5 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <ChevronDown className="w-4 h-4 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
           </div>
@@ -2711,10 +2711,10 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
                   <button
                     type="button"
                     onClick={() => handleRemovePhoto(idx)}
-                    className="absolute top-0.5 right-0.5 bg-black/55 text-white rounded-full w-4 h-4 flex items-center justify-center"
+                    className="absolute top-0.5 right-0.5 bg-black/55 text-white rounded-full w-[18px] h-[18px] flex items-center justify-center"
                     title="この写真を削除"
                   >
-                    <X className="w-2.5 h-2.5" />
+                    <X className="w-3 h-3" />
                   </button>
                 </div>
               ))}
@@ -2726,9 +2726,9 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
                   className="w-16 h-16 rounded-xl border border-dashed border-neutral-300 flex flex-col items-center justify-center text-neutral-400 hover:border-sky-400 hover:text-sky-500 transition-colors disabled:opacity-60"
                 >
                   {isProcessingPhotos ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <RefreshCw className="w-[18px] h-[18px] animate-spin" />
                   ) : (
-                    <Camera className="w-4 h-4" />
+                    <Camera className="w-[18px] h-[18px]" />
                   )}
                   <span className="text-[9px] mt-0.5">追加</span>
                 </button>
@@ -2759,7 +2759,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>
-                <ChevronDown className="w-3.5 h-3.5 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <ChevronDown className="w-4 h-4 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
           )}
@@ -2802,17 +2802,17 @@ function WishlistFormModal({ onClose, isMapsLoaded, onOpenApiKeyModal, onToast, 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
-      <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+      <div className="w-full max-w-md bg-white rounded-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
         <div className="px-5 py-3.5 border-b border-neutral-150 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
-              <Bookmark className="w-4 h-4" />
+              <Bookmark className="w-[18px] h-[18px]" />
             </div>
             <h3 className="text-sm font-bold text-neutral-900">行きたい場所を追加</h3>
           </div>
-          <button onClick={onClose} className="p-1 text-neutral-400 hover:text-neutral-600 rounded-lg">
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="p-1.5 -mr-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg">
+            <X className="w-[22px] h-[22px]" />
           </button>
         </div>
 
@@ -2841,7 +2841,7 @@ function WishlistFormModal({ onClose, isMapsLoaded, onOpenApiKeyModal, onToast, 
                   <option key={k} value={k}>{cat.label}</option>
                 ))}
               </select>
-              <ChevronDown className="w-3.5 h-3.5 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-4 h-4 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
 
@@ -2888,7 +2888,7 @@ function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit, onDelete }) {
       {/* 訪問日ヘッダー */}
       <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
         <div className="flex items-center gap-1.5">
-          <Calendar className="w-3.5 h-3.5 text-sky-500" />
+          <Calendar className="w-4 h-4 text-sky-500" />
           <span className="text-xs font-bold text-neutral-800">
             {formattedDate}
           </span>
@@ -2903,7 +2903,7 @@ function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit, onDelete }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border} flex-shrink-0`}>
-              <cat.icon className="w-3 h-3" />
+              <cat.icon className="w-3.5 h-3.5" />
               {cat.label}
             </span>
             <h2 className="text-sm font-bold text-neutral-900 truncate">
@@ -2944,7 +2944,7 @@ function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit, onDelete }) {
           onClick={onJumpToMap}
           className="text-sky-600 hover:text-sky-700 font-semibold flex items-center gap-1"
         >
-          <MapIcon className="w-3.5 h-3.5" />
+          <MapIcon className="w-4 h-4" />
           <span>マップで見る</span>
         </button>
 
@@ -2954,7 +2954,7 @@ function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit, onDelete }) {
             className="text-neutral-500 hover:text-neutral-800 p-1 flex items-center gap-0.5"
             title="記録を編集"
           >
-            <Edit2 className="w-3.5 h-3.5" />
+            <Edit2 className="w-4 h-4" />
             <span>編集</span>
           </button>
           <button
@@ -2962,7 +2962,7 @@ function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit, onDelete }) {
             className="text-neutral-400 hover:text-red-600 p-1"
             title="記録を削除"
           >
-            <Trash2 className="w-3.5 h-3.5" />
+            <Trash2 className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -2993,21 +2993,21 @@ function TripSummaryCard({ summary, onOpen }) {
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-1.5">
-              <Plane className="w-3.5 h-3.5 text-sky-500 flex-shrink-0" />
+              <Plane className="w-4 h-4 text-sky-500 flex-shrink-0" />
               <span className="truncate">{trip.name}</span>
             </h3>
             <p className="text-[11px] text-neutral-400 mt-1">{period}</p>
           </div>
-          <ChevronRight className="w-4 h-4 text-neutral-300 flex-shrink-0" />
+          <ChevronRight className="w-[18px] h-[18px] text-neutral-300 flex-shrink-0" />
         </div>
 
         <div className="mt-2.5 flex items-center gap-3 text-[11px] text-neutral-600">
           <span className="flex items-center gap-1">
-            <Calendar className="w-3 h-3 text-sky-400" />
+            <Calendar className="w-3.5 h-3.5 text-sky-400" />
             {visitCount}件の訪問
           </span>
           <span className="flex items-center gap-1">
-            <MapPin className="w-3 h-3 text-sky-400" />
+            <MapPin className="w-3.5 h-3.5 text-sky-400" />
             {placeCount}箇所
           </span>
         </div>
@@ -3018,7 +3018,7 @@ function TripSummaryCard({ summary, onOpen }) {
               const cat = CATEGORIES[catKey] || CATEGORIES.other;
               return (
                 <span key={catKey} className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
-                  <cat.icon className="w-2.5 h-2.5" />
+                  <cat.icon className="w-3 h-3" />
                   {cat.label}
                 </span>
               );
@@ -3059,7 +3059,7 @@ function AreaSummaryCard({ area, onOpen }) {
           <span className="text-xs font-black text-sky-700 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-100 whitespace-nowrap">
             {area.items.length}件
           </span>
-          <ChevronRight className="w-4 h-4 text-neutral-300" />
+          <ChevronRight className="w-[18px] h-[18px] text-neutral-300" />
         </div>
       </div>
       {categories.length > 0 && (
@@ -3068,7 +3068,7 @@ function AreaSummaryCard({ area, onOpen }) {
             const cat = CATEGORIES[catKey] || CATEGORIES.other;
             return (
               <span key={catKey} className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
-                <cat.icon className="w-2.5 h-2.5" />
+                <cat.icon className="w-3 h-3" />
                 {cat.label}
               </span>
             );
@@ -3128,7 +3128,7 @@ function CalendarViewComponent({ calendarMonth, onMonthChange, visitsByDate, sel
             className="p-1.5 rounded-lg text-neutral-500 hover:bg-neutral-100"
             aria-label="前の月"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-[18px] h-[18px]" />
           </button>
           <button onClick={goToday} className="text-sm font-black text-neutral-900 px-2 py-0.5 rounded-lg hover:bg-neutral-50">
             {year}年{month + 1}月
@@ -3138,7 +3138,7 @@ function CalendarViewComponent({ calendarMonth, onMonthChange, visitsByDate, sel
             className="p-1.5 rounded-lg text-neutral-500 hover:bg-neutral-100"
             aria-label="次の月"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-[18px] h-[18px]" />
           </button>
         </div>
 
@@ -3208,7 +3208,7 @@ function CalendarViewComponent({ calendarMonth, onMonthChange, visitsByDate, sel
                   onClick={() => onAddForDate(selectedDate)}
                   className="inline-flex items-center gap-1 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-4 py-2 rounded-full shadow-sm transition-all active:scale-95"
                 >
-                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <Plus className="w-4 h-4 stroke-[2.5]" />
                   <span>この日に記録する</span>
                 </button>
               </div>
@@ -3247,12 +3247,12 @@ function CalendarVisitRow({ item, onClick }) {
         <img src={item.photos[0]} alt="" className="w-11 h-11 rounded-lg object-cover flex-shrink-0 border border-neutral-200" />
       ) : (
         <div className={`w-11 h-11 rounded-lg flex-shrink-0 flex items-center justify-center ${cat.bg}`}>
-          <cat.icon className={`w-5 h-5 ${cat.text}`} />
+          <cat.icon className={`w-[22px] h-[22px] ${cat.text}`} />
         </div>
       )}
       <div className="min-w-0 flex-1">
         <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
-          <cat.icon className="w-2.5 h-2.5" />
+          <cat.icon className="w-3 h-3" />
           {cat.label}
         </span>
         <h4 className="text-xs font-bold text-neutral-900 mt-1 truncate">{item.place.name}</h4>
@@ -3261,7 +3261,7 @@ function CalendarVisitRow({ item, onClick }) {
           <p className="text-[11px] text-neutral-500 mt-0.5 truncate">{item.note}</p>
         )}
       </div>
-      <ChevronRight className="w-4 h-4 text-neutral-300 flex-shrink-0 mt-1" />
+      <ChevronRight className="w-[18px] h-[18px] text-neutral-300 flex-shrink-0 mt-1" />
     </div>
   );
 }
@@ -3271,20 +3271,20 @@ function CalendarVisitRow({ item, onClick }) {
 // ==========================================
 function DetailListModal({ icon: Icon, title, subtitle, headerExtra, items, onClose, onOpenPlace, onJumpToMap, onEditVisit, onDeleteVisit }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
-      <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+      <div className="w-full max-w-md bg-white rounded-3xl max-h-[82vh] flex flex-col shadow-2xl overflow-hidden">
         <div className="px-5 py-3.5 border-b border-neutral-150 flex items-start justify-between gap-2">
           <div className="flex items-start gap-2 min-w-0">
             <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <Icon className="w-4 h-4" />
+              <Icon className="w-[18px] h-[18px]" />
             </div>
             <div className="min-w-0">
               <h3 className="text-sm font-bold text-neutral-900 truncate">{title}</h3>
               {subtitle && <p className="text-[11px] text-neutral-400 mt-0.5">{subtitle}</p>}
             </div>
           </div>
-          <button onClick={onClose} className="p-1 text-neutral-400 hover:text-neutral-600 rounded-lg flex-shrink-0">
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="p-1.5 -mr-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg flex-shrink-0">
+            <X className="w-[22px] h-[22px]" />
           </button>
         </div>
 
@@ -3330,17 +3330,17 @@ function TripFormModal({ onClose, onSave }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
-      <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+      <div className="w-full max-w-md bg-white rounded-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
         <div className="px-5 py-3.5 border-b border-neutral-150 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
-              <Plane className="w-4 h-4" />
+              <Plane className="w-[18px] h-[18px]" />
             </div>
             <h3 className="text-sm font-bold text-neutral-900">旅行を作成</h3>
           </div>
-          <button onClick={onClose} className="p-1 text-neutral-400 hover:text-neutral-600 rounded-lg">
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="p-1.5 -mr-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg">
+            <X className="w-[22px] h-[22px]" />
           </button>
         </div>
 
@@ -3419,15 +3419,15 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onAddVisit, onDeletePla
   const cat = CATEGORIES[place.category] || CATEGORIES.other;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
-      <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+      <div className="w-full max-w-md bg-white rounded-3xl max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
         <div className="px-5 py-3.5 border-b border-neutral-150 flex items-center justify-between">
           <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
-            <cat.icon className="w-3 h-3" />
+            <cat.icon className="w-3.5 h-3.5" />
             {cat.label}
           </span>
-          <button onClick={onClose} className="p-1 text-neutral-400 hover:text-neutral-600">
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="p-1.5 -mr-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg">
+            <X className="w-[22px] h-[22px]" />
           </button>
         </div>
 
@@ -3445,7 +3445,7 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onAddVisit, onDeletePla
                 rel="noopener noreferrer"
                 className="flex-1 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-1.5 transition-colors"
               >
-                <ExternalLink className="w-3.5 h-3.5" />
+                <ExternalLink className="w-4 h-4" />
                 <span>Googleマップで開く</span>
               </a>
             )}
@@ -3453,7 +3453,7 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onAddVisit, onDeletePla
               onClick={onJumpToMap}
               className="flex-1 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-1.5 transition-colors"
             >
-              <MapIcon className="w-3.5 h-3.5" />
+              <MapIcon className="w-4 h-4" />
               <span>マップで見る</span>
             </button>
           </div>
@@ -3507,7 +3507,7 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onAddVisit, onDeletePla
               onClick={onDeletePlace}
               className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 transition-colors"
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Trash2 className="w-4 h-4" />
               <span>この場所と全記録を削除</span>
             </button>
           </div>
@@ -3524,7 +3524,7 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onAddVisit, onDeletePla
             onClick={() => setLightboxSrc(null)}
             className="absolute top-4 right-4 text-white/90 hover:text-white p-2"
           >
-            <X className="w-6 h-6" />
+            <X className="w-[26px] h-[26px]" />
           </button>
           <img
             src={lightboxSrc}
@@ -3546,11 +3546,16 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
   const googleMapInstanceRef = useRef(null);
   const markersRef = useRef([]);
   const infoWindowRef = useRef(null);
+  const overlayRef = useRef(null);
 
   const [mapViewMode, setMapViewMode] = useState('visited'); // 'visited' | 'wishlist'
   const [mapCategory, setMapCategory] = useState('all');
   const [mapSearch, setMapSearch] = useState('');
   const [isLocating, setIsLocating] = useState(false);
+  // 「検索・カテゴリー」浮遊オーバーレイの実際の高さ。カテゴリーが2段に
+  // 折り返っても、APIキー未設定時のフォールバック表示と重ならないよう、
+  // 固定値ではなくResizeObserverで実測してその分だけ下に余白を空ける。
+  const [overlayHeight, setOverlayHeight] = useState(150);
 
   // 「行った」／「行きたい」のどちらを地図に表示するか
   const sourceList = useMemo(
@@ -3704,11 +3709,24 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
     );
   };
 
+  // 浮遊オーバーレイ（切り替えトグル＋検索＋カテゴリー）の実測高さを監視。
+  // カテゴリーの折り返し段数や画面幅が変わっても、APIキー未設定時の
+  // フォールバック表示がその下に自然に押し下げられるようにする。
+  useEffect(() => {
+    const el = overlayRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const update = () => setOverlayHeight(el.offsetHeight);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [mapCategory, mapViewMode]);
+
   return (
     <div className="flex flex-col h-[calc(100vh-135px)] lg:h-[calc(100vh-160px)] relative rounded-2xl overflow-hidden border border-neutral-200 shadow-sm">
 
       {/* 検索・カテゴリー */}
-      <div className="absolute top-3 left-3 right-3 z-20 flex flex-col gap-2 pointer-events-none">
+      <div ref={overlayRef} className="absolute top-3 left-3 right-3 z-20 flex flex-col gap-2 pointer-events-none">
         {/* 行った／行きたい 切り替え */}
         <div className="pointer-events-auto flex justify-center">
           <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md rounded-full p-1 shadow-md border border-neutral-200 text-xs">
@@ -3718,7 +3736,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
                 mapViewMode === 'visited' ? 'bg-sky-600 text-white' : 'text-neutral-500'
               }`}
             >
-              <Compass className="w-3.5 h-3.5" />
+              <Compass className="w-4 h-4" />
               <span>行った ({places.length})</span>
             </button>
             <button
@@ -3727,14 +3745,14 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
                 mapViewMode === 'wishlist' ? 'bg-sky-600 text-white' : 'text-neutral-500'
               }`}
             >
-              <Bookmark className="w-3.5 h-3.5" />
+              <Bookmark className="w-4 h-4" />
               <span>行きたい ({wishlist.length})</span>
             </button>
           </div>
         </div>
 
         <div className="pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-md border border-neutral-200 flex items-center px-3 py-1.5">
-          <Search className="w-3.5 h-3.5 text-neutral-400 mr-2" />
+          <Search className="w-4 h-4 text-neutral-400 mr-2" />
           <input
             type="text"
             placeholder="マップ上の場所を検索..."
@@ -3744,7 +3762,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
           />
           {mapSearch && (
             <button onClick={() => setMapSearch('')} className="text-neutral-400">
-              <X className="w-3.5 h-3.5" />
+              <X className="w-4 h-4" />
             </button>
           )}
         </div>
@@ -3766,7 +3784,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
                 mapCategory === k ? 'bg-sky-600 text-white' : 'bg-white/90 text-neutral-700'
               }`}
             >
-              <cat.icon className="w-3 h-3" />
+              <cat.icon className="w-3.5 h-3.5" />
               <span>{cat.label}</span>
             </button>
           ))}
@@ -3779,7 +3797,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
           onClick={handleLocate}
           className="absolute bottom-4 right-4 z-20 w-10 h-10 rounded-xl bg-white shadow-lg border border-neutral-200 flex items-center justify-center text-neutral-700 hover:bg-neutral-50 active:scale-95 transition-all"
         >
-          <Navigation className={`w-4 h-4 ${isLocating ? 'animate-spin text-sky-500' : 'text-neutral-700'}`} />
+          <Navigation className={`w-[18px] h-[18px] ${isLocating ? 'animate-spin text-sky-500' : 'text-neutral-700'}`} />
         </button>
       )}
 
@@ -3790,7 +3808,10 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
       {/* 行った／行きたい・検索・カテゴリーの操作は上の浮遊オーバーレイと共通のstateを使うため、
           ここでは重複させず、そのぶんの高さを空けるだけにする */}
       {!isLoaded && (
-        <div className="absolute inset-0 z-10 bg-neutral-50/95 flex flex-col px-4 pb-4 pt-36 overflow-y-auto">
+        <div
+          className="absolute inset-0 z-10 bg-neutral-50/95 flex flex-col px-4 pb-4 overflow-y-auto"
+          style={{ paddingTop: overlayHeight + 24 }}
+        >
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center mb-3">
             <h4 className="text-xs font-bold text-amber-900 mb-1">Google Maps APIキーが未設定です</h4>
             <p className="text-[11px] text-amber-700 mb-2">
@@ -3820,14 +3841,14 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
                   <div>
                     <div className="flex items-center gap-1.5">
                       <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1 rounded ${cat.bg} ${cat.text}`}>
-                        <cat.icon className="w-2.5 h-2.5" />
+                        <cat.icon className="w-3 h-3" />
                         {cat.label}
                       </span>
                       <span className="text-xs font-bold text-neutral-800">{p.name}</span>
                     </div>
                     <div className="text-[10px] text-neutral-400 mt-0.5">{p.address}</div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-neutral-400" />
+                  <ChevronRight className="w-[18px] h-[18px] text-neutral-400" />
                 </div>
               );
             })}
