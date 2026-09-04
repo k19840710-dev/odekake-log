@@ -52,13 +52,30 @@ function generateUUID() {
 // カテゴリー定義
 // ==========================================
 const CATEGORIES = {
-  food: { label: 'グルメ・飲食店', icon: Utensils, color: '#f97316', bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
-  cafe: { label: 'カフェ・喫茶', icon: Coffee, color: '#8b5cf6', bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
-  shopping: { label: 'ショッピング', icon: ShoppingBag, color: '#ec4899', bg: 'bg-pink-50', text: 'text-pink-700', border: 'border-pink-200' },
-  sightseeing: { label: '観光・散策・公園', icon: Camera, color: '#0ea5e9', bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
-  hotel: { label: 'ホテル・宿泊', icon: Building2, color: '#059669', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
-  other: { label: 'その他施設・駅', icon: MapPin, color: '#64748b', bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200' }
+  food: { label: 'グルメ・飲食店', icon: Utensils, emoji: '🍽️', color: '#f97316', bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
+  cafe: { label: 'カフェ・喫茶', icon: Coffee, emoji: '☕', color: '#8b5cf6', bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
+  shopping: { label: 'ショッピング', icon: ShoppingBag, emoji: '🛍️', color: '#ec4899', bg: 'bg-pink-50', text: 'text-pink-700', border: 'border-pink-200' },
+  sightseeing: { label: '観光・散策・公園', icon: Camera, emoji: '📸', color: '#0ea5e9', bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
+  hotel: { label: 'ホテル・宿泊', icon: Building2, emoji: '🏨', color: '#059669', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  other: { label: 'その他施設・駅', icon: MapPin, emoji: '📍', color: '#64748b', bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200' }
 };
+
+// カテゴリーの絵文字＋色から、地図ピン用のSVGアイコン（data URI）を作る
+function buildEmojiMarkerIcon(emoji, color) {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="52" viewBox="0 0 40 52">
+      <path d="M20 0C9 0 0 9 0 20c0 13.5 17 29.5 19.1 31.4a1.2 1.2 0 0 0 1.8 0C23 49.5 40 33.5 40 20 40 9 31 0 20 0z" fill="${color}" stroke="#ffffff" stroke-width="2"/>
+      <circle cx="20" cy="19" r="14" fill="#ffffff"/>
+      <text x="20" y="25" font-size="18" text-anchor="middle">${emoji}</text>
+    </svg>
+  `.trim();
+
+  return {
+    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+    scaledSize: new window.google.maps.Size(36, 46),
+    anchor: new window.google.maps.Point(18, 46)
+  };
+}
 
 // Google Places types からカテゴリー推定
 function detectCategoryFromTypes(types = []) {
@@ -2362,7 +2379,8 @@ function MapViewerComponent({ isLoaded, apiKey, places, targetPlace, onSelectPla
       const marker = new window.google.maps.Marker({
         position,
         map,
-        title: place.name
+        title: place.name,
+        icon: buildEmojiMarkerIcon(cat.emoji, cat.color)
       });
 
       marker.addListener('click', () => {
@@ -2375,7 +2393,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, targetPlace, onSelectPla
         const title = document.createElement('div');
         title.style.fontWeight = 'bold';
         title.style.fontSize = '13px';
-        title.textContent = place.name;
+        title.textContent = `${cat.emoji} ${place.name}`;
         contentDiv.appendChild(title);
 
         const sub = document.createElement('div');
