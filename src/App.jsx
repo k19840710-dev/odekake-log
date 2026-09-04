@@ -1219,11 +1219,11 @@ function OdekakeLogMain() {
         {/* メインエリア */}
         <main className="flex-1 overflow-y-auto px-4 lg:px-8 py-3 lg:py-5">
 
-          {/* 検索・絞り込み（記録・場所タブ）：検索→カテゴリで1つの絞り込み
-              グループに見えるよう間隔を詰め、カテゴリは横スクロールさせず
-              短い表示名で原則2段に収める。下に続く表示切り替え（月別/旅行別/
-              エリア別、訪問済み/行きたい）とは、余白＋薄い区切り線で
-              別グループだと分かるようにする。 */}
+          {/* 検索・絞り込み（記録・場所タブ）：カテゴリーは縦2段にせず、
+              ネイティブアプリのような1行横スクロールのカルーセルにする
+              （スクロールバーは.no-scrollbarで非表示）。下に続く表示切り替え
+              （月別/旅行別/エリア別、訪問済み/行きたい）とは、余白＋薄い
+              区切り線で別グループだと分かるようにする。 */}
           {(activeTab === 'logs' || activeTab === 'places') && (
             <div className="mb-4 space-y-2 lg:max-w-md">
               <div className="relative">
@@ -1245,10 +1245,10 @@ function OdekakeLogMain() {
                 )}
               </div>
 
-              <div className="flex flex-wrap justify-center gap-1.5 text-xs">
+              <div className="flex items-center gap-1.5 text-xs overflow-x-auto no-scrollbar pb-0.5 -mx-4 px-4 lg:mx-0 lg:px-0">
                 <button
                   onClick={() => setSelectedCategory('all')}
-                  className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap ${
+                  className={`flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap ${
                     selectedCategory === 'all'
                       ? 'bg-neutral-800 text-white'
                       : 'bg-white text-neutral-600 border border-neutral-200'
@@ -1260,7 +1260,7 @@ function OdekakeLogMain() {
                   <button
                     key={k}
                     onClick={() => setSelectedCategory(k)}
-                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap flex items-center gap-1 border ${
+                    className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap flex items-center gap-1 border ${
                       selectedCategory === k
                         ? `${cat.bg} ${cat.text} ${cat.border} ring-1 ring-current`
                         : 'bg-white text-neutral-600 border-neutral-200'
@@ -2899,14 +2899,42 @@ function StarRating({ rating = 0, sizeClass = 'w-3 h-3' }) {
 }
 
 // ==========================================
+// 写真の拡大表示（ライトボックス）：タイムライン・詳細画面で共通利用
+// ==========================================
+function PhotoLightbox({ src, onClose }) {
+  if (!src) return null;
+  return (
+    <div
+      className="fixed inset-0 z-[60] bg-black/85 flex items-center justify-center p-6"
+      onClick={onClose}
+    >
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 text-white/90 hover:text-white p-2"
+      >
+        <X className="w-[29px] h-[29px]" />
+      </button>
+      <img
+        src={src}
+        alt=""
+        className="max-w-full max-h-full rounded-xl object-contain"
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
+  );
+}
+
+// ==========================================
 // 訪問記録カード（記録タブ・旅行詳細・エリア詳細で共通利用）
 // ==========================================
 function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit }) {
   const cat = CATEGORIES[item.place.category] || CATEGORIES.other;
   const formattedDate = formatDateWithWeekday(item.date);
   const relativeDays = getRelativeDays(item.date);
+  const [lightboxSrc, setLightboxSrc] = useState(null);
 
   return (
+    <>
     <div
       className="bg-white rounded-2xl p-4 border border-neutral-200/80 shadow-sm hover:border-neutral-300 transition-all cursor-pointer"
       onClick={onOpenDetail}
@@ -2942,9 +2970,17 @@ function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit }) {
         </div>
 
         <div className="flex flex-col items-end gap-1 flex-shrink-0">
-          {/* 写真がある場合のみ、控えめに1枚目をサムネイル表示 */}
+          {/* 写真がある場合のみ、控えめに1枚目をサムネイル表示。
+              タップでライトボックス拡大表示（カード自体のタップとは
+              別動作にするためstopPropagation） */}
           {item.photos && item.photos.length > 0 && (
-            <div className="relative w-11 h-11 rounded-lg overflow-hidden border border-neutral-200 bg-neutral-100">
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxSrc(item.photos[0]);
+              }}
+              className="relative w-11 h-11 rounded-lg overflow-hidden border border-neutral-200 bg-neutral-100"
+            >
               <img src={item.photos[0]} alt="" className="w-full h-full object-cover" />
               {item.photos.length > 1 && (
                 <span className="absolute bottom-0 right-0 bg-black/60 text-white text-[8px] font-bold px-1 leading-[14px] rounded-tl">
@@ -2984,6 +3020,8 @@ function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit }) {
         </div>
       </div>
     </div>
+    <PhotoLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+    </>
   );
 }
 
@@ -3532,26 +3570,7 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onAddVisit, onDeletePla
         </div>
       </div>
 
-      {/* 写真の拡大表示（ライトボックス） */}
-      {lightboxSrc && (
-        <div
-          className="fixed inset-0 z-[60] bg-black/85 flex items-center justify-center p-6"
-          onClick={() => setLightboxSrc(null)}
-        >
-          <button
-            onClick={() => setLightboxSrc(null)}
-            className="absolute top-4 right-4 text-white/90 hover:text-white p-2"
-          >
-            <X className="w-[29px] h-[29px]" />
-          </button>
-          <img
-            src={lightboxSrc}
-            alt=""
-            className="max-w-full max-h-full rounded-xl object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
+      <PhotoLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </div>
   );
 }

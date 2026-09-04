@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ネイティブアプリのような滑らかな横スクロールカルーセル用。
+   スクロールバーは非表示にするが、スクロール自体は有効なまま。 */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Google Maps の InfoWindow：閉じるボタンの見た目だけを軽く調整する。
    以前は閉じるボタン用のヘッダー行（.gm-style-iw-chr）自体の高さ・
    positionを書き換えて畳んでいたが、それがGoogle内部の「吹き出しの
