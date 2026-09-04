@@ -542,6 +542,7 @@ function OdekakeLogMain() {
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [selectedPlaceDetail, setSelectedPlaceDetail] = useState(null);
   const [targetPlaceForMap, setTargetPlaceForMap] = useState(null);
+  const [targetBoundsForMap, setTargetBoundsForMap] = useState(null);
 
   // トースト通知（alert()の代わりに使う軽量な通知）
   const [toastMessage, setToastMessage] = useState('');
@@ -976,6 +977,25 @@ function OdekakeLogMain() {
     setActiveTab('map');
   };
 
+  // エリア／旅行ヘッダーの「地図で見る」：複数スポットをまとめて
+  // 地図上にズーム表示する（1件ずつのpanTo+固定ズームではなく、
+  // 対象スポット全体が収まるようfitBoundsする）。
+  const handleJumpAreaToMap = (itemsList) => {
+    const uniquePlaces = [];
+    const seen = new Set();
+    itemsList.forEach(item => {
+      const p = item.place || item;
+      if (p && p.lat && p.lng && !seen.has(p.id)) {
+        seen.add(p.id);
+        uniquePlaces.push(p);
+      }
+    });
+    if (uniquePlaces.length === 0) return;
+    setTargetPlaceForMap(null);
+    setTargetBoundsForMap(uniquePlaces);
+    setActiveTab('map');
+  };
+
   // 行きたい場所リストの削除・「行った！」への変換
   const handleDeleteWishlistItem = (wishId) => {
     setConfirmDialog({
@@ -1392,24 +1412,60 @@ function OdekakeLogMain() {
                     記録がありません。「記録する」ボタンから訪れた場所を追加してください。
                   </div>
                 ) : (
-                  logsGroupedByArea.map((city) => (
-                    <div key={city.cityLabel} className="space-y-2">
-                      <div className="flex items-center gap-1.5 text-xs font-black text-neutral-700 px-1">
-                        <MapPinned className="w-[18px] h-[18px] text-sky-500" />
-                        <span>{city.cityLabel}</span>
-                        <span className="text-neutral-400 font-normal">（{city.total}件）</span>
+                  logsGroupedByArea.map((city) => {
+                    // 件数が少ない都市は、地名（エリア）単位の下層をもう1段
+                    // 挟まず、スポットカードを直接ヘッダー下に並べてタップ
+                    // 回数を減らす。件数が多い都市は従来どおりエリアごとに
+                    // まとめたカードにして一覧性を保つ。
+                    const isFlat = city.areas.length === 1 || city.total <= 3;
+                    const flatItems = isFlat
+                      ? city.areas.flatMap(a => a.items).sort((a, b) => new Date(b.date) - new Date(a.date))
+                      : [];
+                    return (
+                      <div key={city.cityLabel} className="space-y-2">
+                        <div className="flex items-center gap-1.5 text-xs font-black text-neutral-700 px-1">
+                          <MapPinned className="w-[18px] h-[18px] text-sky-500" />
+                          <span>{city.cityLabel}</span>
+                          <span className="text-neutral-400 font-normal">（{city.total}件）</span>
+                          <button
+                            onClick={() => handleJumpAreaToMap(isFlat ? flatItems : city.areas.flatMap(a => a.items))}
+                            className="ml-auto text-neutral-400 hover:text-sky-600 p-1"
+                            title="地図で見る"
+                          >
+                            <MapIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                        {isFlat ? (
+                          <div className="space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0 xl:grid-cols-3">
+                            {flatItems.map((item) => (
+                              <VisitCard
+                                key={item.id}
+                                item={item}
+                                onOpenDetail={() => setSelectedPlaceDetail(item.place)}
+                                onJumpToMap={() => handleJumpToMap(item.place)}
+                                onEdit={() => {
+                                  setEditingVisit(item);
+                                  setEditingPlace(item.place);
+                                  setIsRecordModalOpen(true);
+                                }}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="space-y-2 lg:grid lg:grid-cols-2 lg:gap-2.5 lg:space-y-0 xl:grid-cols-3">
+                            {city.areas.map((area) => (
+                              <AreaSummaryCard
+                                key={area.key}
+                                area={area}
+                                onOpen={() => setOpenAreaDetailKey(area.key)}
+                                onJumpToMap={() => handleJumpAreaToMap(area.items)}
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <div className="space-y-2 lg:grid lg:grid-cols-2 lg:gap-2.5 lg:space-y-0 xl:grid-cols-3">
-                        {city.areas.map((area) => (
-                          <AreaSummaryCard
-                            key={area.key}
-                            area={area}
-                            onOpen={() => setOpenAreaDetailKey(area.key)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )
               )}
 
@@ -1758,6 +1814,7 @@ function OdekakeLogMain() {
               places={enrichedPlaces}
               wishlist={wishlist}
               targetPlace={targetPlaceForMap}
+              targetBounds={targetBoundsForMap}
               onToast={showToast}
               onSelectPlace={(p) => setSelectedPlaceDetail(p)}
               onConvertWishlistToVisit={handleConvertWishlistToVisit}
@@ -1952,33 +2009,15 @@ function OdekakeLogMain() {
           const period = detailTrip.startDate === detailTrip.endDate
             ? formatDateWithWeekday(detailTrip.startDate)
             : `${formatDateWithWeekday(detailTrip.startDate)} 〜 ${formatDateWithWeekday(detailTrip.endDate)}`;
-          const placeCount = new Set(detailItems.map(i => i.placeId)).size;
+          const heroPhoto = detailItems.find(i => i.photos && i.photos.length > 0)?.photos[0] || null;
 
           return (
-            <DetailListModal
-              icon={Plane}
-              title={detailTrip.name}
-              subtitle={period}
-              headerExtra={
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs bg-neutral-50 p-2.5 rounded-xl border border-neutral-150">
-                    <span className="text-neutral-600">{detailItems.length}件の訪問・{placeCount}箇所</span>
-                    <button
-                      onClick={() => handleDeleteTrip(detailTrip.id)}
-                      className="text-red-500 hover:text-red-700 flex items-center gap-1 text-[11px] font-semibold"
-                    >
-                      <Trash2 className="w-[18px] h-[18px]" />
-                      <span>旅行を削除</span>
-                    </button>
-                  </div>
-                  {detailTrip.memo && (
-                    <p className="text-xs text-neutral-600 bg-neutral-50 p-2.5 rounded-xl border border-neutral-100 leading-relaxed">
-                      {detailTrip.memo}
-                    </p>
-                  )}
-                </div>
-              }
+            <TripDetailModal
+              trip={detailTrip}
+              period={period}
               items={detailItems}
+              heroPhoto={heroPhoto}
+              isMapsLoaded={isMapsLoaded}
               onClose={() => setOpenTripDetailId(null)}
               onOpenPlace={(place) => { setOpenTripDetailId(null); setSelectedPlaceDetail(place); }}
               onJumpToMap={(place) => { setOpenTripDetailId(null); handleJumpToMap(place); }}
@@ -1988,6 +2027,7 @@ function OdekakeLogMain() {
                 setEditingPlace(item.place);
                 setIsRecordModalOpen(true);
               }}
+              onDeleteTrip={() => handleDeleteTrip(detailTrip.id)}
             />
           );
         })()}
@@ -3064,15 +3104,24 @@ function TripSummaryCard({ summary, onOpen }) {
 // ==========================================
 // エリアサマリーカード（記録タブ・エリア別）
 // ==========================================
-function AreaSummaryCard({ area, onOpen }) {
+function AreaSummaryCard({ area, onOpen, onJumpToMap }) {
   const categories = Array.from(new Set(area.items.map(i => i.place.category)));
   const lastVisited = area.items[0]?.date; // itemsは新しい順にソート済み
+  // 思い出しやすいよう、そのエリア内の記録から最初に見つかった写真を
+  // サムネイルとして表示する（無ければ何も表示しない）
+  const firstPhoto = area.items.find(i => i.photos && i.photos.length > 0)?.photos[0];
 
   return (
     <div
       onClick={onOpen}
-      className="bg-white rounded-2xl p-4 border border-neutral-200/80 shadow-sm hover:border-neutral-300 transition-all cursor-pointer"
+      className="bg-white rounded-2xl border border-neutral-200/80 shadow-sm hover:border-neutral-300 transition-all cursor-pointer overflow-hidden"
     >
+      {firstPhoto && (
+        <div className="w-full h-20 bg-neutral-100">
+          <img src={firstPhoto} alt="" className="w-full h-full object-cover" />
+        </div>
+      )}
+      <div className="p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h3 className="text-sm font-bold text-neutral-900 truncate">{area.areaLabel}</h3>
@@ -3080,10 +3129,15 @@ function AreaSummaryCard({ area, onOpen }) {
             最終訪問: {lastVisited ? formatDateWithWeekday(lastVisited) : '-'}
           </p>
         </div>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        <div className="flex items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
           <span className="text-xs font-black text-sky-700 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-100 whitespace-nowrap">
             {area.items.length}件
           </span>
+          {onJumpToMap && (
+            <button onClick={onJumpToMap} className="text-neutral-400 hover:text-sky-600 p-1" title="地図で見る">
+              <MapIcon className="w-4 h-4" />
+            </button>
+          )}
           <ChevronRight className="w-[21px] h-[21px] text-neutral-300" />
         </div>
       </div>
@@ -3100,6 +3154,7 @@ function AreaSummaryCard({ area, onOpen }) {
           })}
         </div>
       )}
+      </div>
     </div>
   );
 }
@@ -3315,6 +3370,156 @@ function DetailListModal({ icon: Icon, title, subtitle, headerExtra, items, onCl
 
         <div className="p-5 overflow-y-auto space-y-3 flex-1">
           {headerExtra}
+
+          <div className="space-y-2.5">
+            {items.length === 0 ? (
+              <div className="py-10 text-center text-neutral-400 text-xs">まだ記録がありません。</div>
+            ) : (
+              items.map(item => (
+                <VisitCard
+                  key={item.id}
+                  item={item}
+                  onOpenDetail={() => onOpenPlace(item.place)}
+                  onJumpToMap={() => onJumpToMap(item.place)}
+                  onEdit={() => onEditVisit(item)}
+                />
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
+// 旅行の中に立つピンをまとめて表示するミニマップ（旅行詳細モーダル用）。
+// APIキー未設定時やピンが無い場合は何も表示しない（呼び出し側の
+// レイアウトが崩れないよう、常にnull安全）。
+// ==========================================
+function TripMiniMap({ isMapsLoaded, places }) {
+  const mapRef = useRef(null);
+  const validPlaces = useMemo(() => places.filter(p => p.lat && p.lng), [places]);
+
+  useEffect(() => {
+    if (!isMapsLoaded || !mapRef.current || !window.google?.maps || validPlaces.length === 0) return;
+    try {
+      const map = new window.google.maps.Map(mapRef.current, {
+        disableDefaultUI: true,
+        zoomControl: false,
+        gestureHandling: 'cooperative',
+        clickableIcons: false
+      });
+      const bounds = new window.google.maps.LatLngBounds();
+      validPlaces.forEach(p => {
+        const cat = CATEGORIES[p.category] || CATEGORIES.other;
+        new window.google.maps.Marker({
+          position: { lat: p.lat, lng: p.lng },
+          map,
+          icon: buildEmojiMarkerIcon(cat.emoji, cat.color)
+        });
+        bounds.extend({ lat: p.lat, lng: p.lng });
+      });
+      if (validPlaces.length === 1) {
+        map.setCenter({ lat: validPlaces[0].lat, lng: validPlaces[0].lng });
+        map.setZoom(14);
+      } else {
+        map.fitBounds(bounds, 30);
+      }
+    } catch (err) {
+      console.warn('Trip mini map init error:', err);
+    }
+  }, [isMapsLoaded, validPlaces]);
+
+  if (!isMapsLoaded || validPlaces.length === 0) return null;
+
+  return (
+    <div className="w-full h-36 rounded-xl overflow-hidden border border-neutral-200 bg-neutral-100">
+      <div ref={mapRef} className="w-full h-full" />
+    </div>
+  );
+}
+
+// ==========================================
+// 旅行詳細モーダル：白背景ヘッダーではなく、旅行のベストフォトを
+// 横いっぱいに表示しタイトルを重ねる。ミニマップと写真サムネイル
+// 付きの訪問リストで、旅行そのものを1つのまとまりとして振り返れる
+// ようにする。
+// ==========================================
+function TripDetailModal({ trip, period, items, heroPhoto, isMapsLoaded, onClose, onOpenPlace, onJumpToMap, onEditVisit, onDeleteTrip }) {
+  const uniquePlaces = useMemo(() => {
+    const seen = new Set();
+    const list = [];
+    items.forEach(i => {
+      if (i.place && !seen.has(i.place.id)) {
+        seen.add(i.place.id);
+        list.push(i.place);
+      }
+    });
+    return list;
+  }, [items]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+      <div className="w-full max-w-md bg-white rounded-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+        {/* ヘッダー：写真があれば横いっぱいのヒーロー画像にタイトルを
+            重ねる。写真が無い旅行では、従来どおりの白背景ヘッダーに
+            自然にフォールバックする。 */}
+        {heroPhoto ? (
+          <div className="relative h-40 flex-shrink-0">
+            <img src={heroPhoto} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/0" />
+            <button
+              onClick={onClose}
+              className="absolute top-3 right-3 p-1.5 bg-black/40 hover:bg-black/55 text-white rounded-full"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="absolute bottom-0 left-0 right-0 p-4">
+              <h3 className="text-lg font-black text-white leading-tight flex items-center gap-1.5">
+                <Plane className="w-[18px] h-[18px] flex-shrink-0" />
+                <span className="truncate">{trip.name}</span>
+              </h3>
+              <p className="text-[11px] text-white/85 mt-0.5">{period}</p>
+            </div>
+          </div>
+        ) : (
+          <div className="px-5 py-3.5 border-b border-neutral-150 flex items-start justify-between gap-2 flex-shrink-0">
+            <div className="flex items-start gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Plane className="w-[21px] h-[21px]" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-neutral-900 truncate">{trip.name}</h3>
+                <p className="text-[11px] text-neutral-400 mt-0.5">{period}</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="p-1.5 -mr-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg flex-shrink-0">
+              <X className="w-[25px] h-[25px]" />
+            </button>
+          </div>
+        )}
+
+        <div className="p-5 overflow-y-auto space-y-3 flex-1">
+          <div className="flex items-center justify-between text-xs bg-neutral-50 p-2.5 rounded-xl border border-neutral-150">
+            <span className="text-neutral-600">{items.length}件の訪問・{uniquePlaces.length}箇所</span>
+            <button
+              onClick={onDeleteTrip}
+              className="text-red-500 hover:text-red-700 flex items-center gap-1 text-[11px] font-semibold"
+            >
+              <Trash2 className="w-[18px] h-[18px]" />
+              <span>旅行を削除</span>
+            </button>
+          </div>
+
+          {trip.memo && (
+            <p className="text-xs text-neutral-600 bg-neutral-50 p-2.5 rounded-xl border border-neutral-100 leading-relaxed">
+              {trip.memo}
+            </p>
+          )}
+
+          {/* 旅行で訪れた場所のミニマップ */}
+          <TripMiniMap isMapsLoaded={isMapsLoaded} places={uniquePlaces} />
 
           <div className="space-y-2.5">
             {items.length === 0 ? (
@@ -3555,7 +3760,7 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onEditVisit, onDeletePl
 // ==========================================
 // マップ表示コンポーネント（Google Maps ＆ プレビューフォールバック）
 // ==========================================
-function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, onSelectPlace, onConvertWishlistToVisit, onRequestAddSpot, onOpenApiKeyModal, onToast }) {
+function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, targetBounds, onSelectPlace, onConvertWishlistToVisit, onRequestAddSpot, onOpenApiKeyModal, onToast }) {
   const mapRef = useRef(null);
   const googleMapInstanceRef = useRef(null);
   const markersRef = useRef([]);
@@ -3670,6 +3875,23 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
       googleMapInstanceRef.current.setZoom(16);
     }
   }, [targetPlace]);
+
+  // targetBounds 移動：エリア／旅行ヘッダーの「地図で見る」から、複数
+  // スポットがまとまって収まるようfitBoundsする（1件だけの時は
+  // 単一ピンとしてほどよいズームレベルに収める）。
+  useEffect(() => {
+    if (targetBounds && targetBounds.length > 0 && googleMapInstanceRef.current && window.google?.maps) {
+      const map = googleMapInstanceRef.current;
+      if (targetBounds.length === 1) {
+        map.panTo({ lat: targetBounds[0].lat, lng: targetBounds[0].lng });
+        map.setZoom(15);
+        return;
+      }
+      const bounds = new window.google.maps.LatLngBounds();
+      targetBounds.forEach(p => bounds.extend({ lat: p.lat, lng: p.lng }));
+      map.fitBounds(bounds, { top: 60, bottom: 60, left: 40, right: 40 });
+    }
+  }, [targetBounds]);
 
   // 現在地取得
   const handleLocate = () => {
