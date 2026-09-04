@@ -2588,10 +2588,10 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3">
-      <div className="w-full max-w-lg bg-white rounded-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-2">
+      <div className="w-full max-w-xl bg-white rounded-3xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden">
         {/* モーダルヘッダー */}
-        <div className="px-5 pt-4 pb-3 flex items-center justify-between flex-shrink-0">
+        <div className="px-6 pt-4 pb-3 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
               <MapPin className="w-[24px] h-[24px]" />
@@ -2605,13 +2605,13 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
           </button>
         </div>
 
-        {/* ヘッダー下の区切り線：全幅ではなく中央に短く配置し、主張しすぎないようにする */}
+        {/* ヘッダー下の区切り線:全幅ではなく中央に短く配置し、主張しすぎないようにする */}
         <div className="flex justify-center flex-shrink-0">
           <div className="w-[88%] border-t border-neutral-150" />
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-        <div className="px-5 py-3.5 overflow-y-auto space-y-3 flex-1 min-h-0">
+        <div className="px-6 py-3.5 overflow-y-auto space-y-3 flex-1 min-h-0">
 
           <PlaceSearchField
             isMapsLoaded={isMapsLoaded}
@@ -2760,11 +2760,12 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
         </div>
 
         {/* 保存ボタン：入力欄のスクロールに関わらず常に下部に固定表示。
-            区切り線は引かず、余白だけで自然につなげる */}
-        <div className="px-5 pt-1 pb-4 flex-shrink-0">
+            区切り線は引かず、余白だけで自然につなげる。主操作なので
+            他の項目より一回り大きいタップ領域・文字サイズにする */}
+        <div className="px-6 pt-1 pb-4 flex-shrink-0">
           <button
             type="submit"
-            className="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-2xl shadow-md transition-all active:scale-[0.98] text-xs"
+            className="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3.5 rounded-2xl shadow-md transition-all active:scale-[0.98] text-sm"
           >
             {initialVisit ? '記録を更新する' : 'この内容で記録する'}
           </button>
@@ -3411,14 +3412,15 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onAddVisit, onDeletePla
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
       <div className="w-full max-w-md bg-white rounded-3xl max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
         {/* ヘッダー：カテゴリ／×／店名／住所を1つの塊にまとめ、
-            余計な余白や区切り線で間延びさせない */}
-        <div className="px-5 pt-4 pb-3">
-          <div className="flex items-start justify-between gap-2">
+            余計な余白や区切り線で間延びさせない。ただし上端に詰まり
+            すぎないよう、コンテナ側のpaddingで少しだけ呼吸させる */}
+        <div className="px-5 pt-6 pb-3">
+          <div className="flex items-center justify-between gap-2">
             <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
               <cat.icon className="w-4 h-4" />
               {cat.label}
             </span>
-            <button onClick={onClose} className="p-1.5 -mr-1.5 -mt-1 text-neutral-400 hover:text-neutral-600 rounded-lg flex-shrink-0">
+            <button onClick={onClose} className="p-1.5 -mr-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg flex-shrink-0">
               <X className="w-[25px] h-[25px]" />
             </button>
           </div>
@@ -3628,10 +3630,22 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
         const contentDiv = document.createElement('div');
         contentDiv.style.padding = '4px';
         contentDiv.style.maxWidth = '200px';
+        contentDiv.style.boxSizing = 'border-box';
 
         const title = document.createElement('div');
         title.style.fontWeight = 'bold';
         title.style.fontSize = '13px';
+        title.style.lineHeight = '1.35';
+        // ×ボタン（InfoWindow右上に絶対配置）の下に店名が潜り込んで
+        // 重ならないよう、右側に専用スペースを確保しつつ、長い店名は
+        // 折り返して最大2行までに収める（それ以上は省略記号で切る）。
+        title.style.paddingRight = '18px';
+        title.style.boxSizing = 'border-box';
+        title.style.display = '-webkit-box';
+        title.style.webkitLineClamp = '2';
+        title.style.webkitBoxOrient = 'vertical';
+        title.style.overflow = 'hidden';
+        title.style.wordBreak = 'break-word';
         title.textContent = `${cat.emoji} ${place.name}`;
         contentDiv.appendChild(title);
 
