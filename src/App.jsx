@@ -1223,10 +1223,10 @@ function OdekakeLogMain() {
                 )}
               </div>
 
-              <div className="flex gap-1.5 overflow-x-auto pb-1 text-xs">
+              <div className="-mx-4 px-4 lg:mx-0 lg:px-0 flex gap-1.5 overflow-x-auto snap-x snap-mandatory scroll-px-4 pb-1 text-xs">
                 <button
                   onClick={() => setSelectedCategory('all')}
-                  className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap ${
+                  className={`flex-shrink-0 snap-start px-3 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap ${
                     selectedCategory === 'all'
                       ? 'bg-neutral-800 text-white'
                       : 'bg-white text-neutral-600 border border-neutral-200'
@@ -1238,7 +1238,7 @@ function OdekakeLogMain() {
                   <button
                     key={k}
                     onClick={() => setSelectedCategory(k)}
-                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap flex items-center gap-1 border ${
+                    className={`flex-shrink-0 snap-start px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap flex items-center gap-1 border ${
                       selectedCategory === k
                         ? `${cat.bg} ${cat.text} ${cat.border} ring-1 ring-current`
                         : 'bg-white text-neutral-600 border-neutral-200'
@@ -1248,6 +1248,7 @@ function OdekakeLogMain() {
                     <span>{cat.label}</span>
                   </button>
                 ))}
+                <div className="flex-shrink-0 w-1" aria-hidden="true" />
               </div>
             </div>
           )}
@@ -1571,7 +1572,7 @@ function OdekakeLogMain() {
                               <button
                                 key={opt.label}
                                 onClick={() => setNearbyRadiusFilter(opt.value)}
-                                className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap border transition-colors ${
+                                className={`flex-shrink-0 px-2.5 py-1 rounded-full font-bold whitespace-nowrap border transition-colors ${
                                   nearbyRadiusFilter === opt.value
                                     ? 'bg-sky-600 text-white border-sky-600'
                                     : 'bg-white text-neutral-600 border-neutral-200'
@@ -2072,7 +2073,7 @@ function OdekakeLogMain() {
                   placeholder="AIzaSy..."
                   value={apiKeyInput}
                   onChange={(e) => setApiKeyInput(e.target.value)}
-                  className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-500"
+                  className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-500"
                 />
 
                 <div className="flex justify-end gap-2 text-xs font-semibold">
@@ -2585,7 +2586,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, 
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+              className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
             />
           </div>
 
@@ -2596,7 +2597,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, 
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-2.5 py-2 text-xs text-neutral-800 focus:outline-none"
+                className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-2.5 py-2 text-xs text-neutral-800 focus:outline-none"
               >
                 {Object.entries(CATEGORIES).map(([k, cat]) => (
                   <option key={k} value={k}>{cat.label}</option>
@@ -2609,7 +2610,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, 
               <select
                 value={rating}
                 onChange={(e) => setRating(Number(e.target.value))}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-2.5 py-2 text-xs text-neutral-800 focus:outline-none"
+                className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-2.5 py-2 text-xs text-neutral-800 focus:outline-none"
               >
                 <option value={5}>⭐⭐⭐⭐⭐ (5点)</option>
                 <option value={4}>⭐⭐⭐⭐ (4点)</option>
@@ -2630,7 +2631,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, 
               placeholder="おすすめの料理、店内の雰囲気、混雑具合など..."
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+              className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
             />
           </div>
 
@@ -2687,7 +2688,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, 
               <select
                 value={tripId}
                 onChange={(e) => setTripId(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-2.5 py-2 text-xs text-neutral-800 focus:outline-none"
+                className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-2.5 py-2 text-xs text-neutral-800 focus:outline-none"
               >
                 <option value="">なし（通常の記録）</option>
                 {trips.map(t => (
@@ -2767,7 +2768,7 @@ function WishlistFormModal({ onClose, isMapsLoaded, onOpenApiKeyModal, onToast, 
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-2.5 py-2 text-xs text-neutral-800 focus:outline-none"
+              className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-2.5 py-2 text-xs text-neutral-800 focus:outline-none"
             >
               {Object.entries(CATEGORIES).map(([k, cat]) => (
                 <option key={k} value={k}>{cat.label}</option>
@@ -2784,7 +2785,7 @@ function WishlistFormModal({ onClose, isMapsLoaded, onOpenApiKeyModal, onToast, 
               placeholder="友達がおすすめしてた、期間限定メニューが気になる、など..."
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+              className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
             />
           </div>
 
@@ -3096,7 +3097,7 @@ function TripFormModal({ onClose, onSave }) {
               placeholder="例：台湾旅行"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+              className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
             />
           </div>
 
@@ -3108,7 +3109,7 @@ function TripFormModal({ onClose, onSave }) {
                 required
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+                className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
               />
             </div>
             <div>
@@ -3118,7 +3119,7 @@ function TripFormModal({ onClose, onSave }) {
                 required
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+                className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
               />
             </div>
           </div>
@@ -3134,7 +3135,7 @@ function TripFormModal({ onClose, onSave }) {
               placeholder="旅の目的、同行者など..."
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+              className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
             />
           </div>
 
@@ -3515,10 +3516,10 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
           )}
         </div>
 
-        <div className="flex gap-1 overflow-x-auto pb-1 text-xs pointer-events-auto">
+        <div className="flex gap-1 overflow-x-auto snap-x snap-mandatory pb-1 text-xs pointer-events-auto">
           <button
             onClick={() => setMapCategory('all')}
-            className={`px-3 py-1 rounded-full text-[10px] font-bold shadow-md backdrop-blur-md transition-all whitespace-nowrap ${
+            className={`flex-shrink-0 snap-start px-3 py-1 rounded-full text-[10px] font-bold shadow-md backdrop-blur-md transition-all whitespace-nowrap ${
               mapCategory === 'all' ? 'bg-neutral-900 text-white' : 'bg-white/90 text-neutral-700'
             }`}
           >
@@ -3528,7 +3529,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
             <button
               key={k}
               onClick={() => setMapCategory(k)}
-              className={`px-2.5 py-1 rounded-full text-[10px] font-bold shadow-md backdrop-blur-md transition-all whitespace-nowrap flex items-center gap-1 ${
+              className={`flex-shrink-0 snap-start px-2.5 py-1 rounded-full text-[10px] font-bold shadow-md backdrop-blur-md transition-all whitespace-nowrap flex items-center gap-1 ${
                 mapCategory === k ? 'bg-sky-600 text-white' : 'bg-white/90 text-neutral-700'
               }`}
             >
@@ -3536,6 +3537,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
               <span>{cat.label}</span>
             </button>
           ))}
+          <div className="flex-shrink-0 w-1" aria-hidden="true" />
         </div>
       </div>
 
