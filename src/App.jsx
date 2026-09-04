@@ -32,7 +32,9 @@ import {
   Bookmark,
   Plane,
   Sparkles,
-  MapPinned
+  MapPinned,
+  CalendarDays,
+  ChevronLeft
 } from 'lucide-react';
 
 // ==========================================
@@ -518,6 +520,14 @@ function OdekakeLogMain() {
   const [openAreaDetailKey, setOpenAreaDetailKey] = useState(null);
   const [isTripFormModalOpen, setIsTripFormModalOpen] = useState(false);
 
+  // カレンダータブ（表示中の年月、選択中の日付）
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth() }; // month: 0-11
+  });
+  const [calendarSelectedDate, setCalendarSelectedDate] = useState(getTodayDateString());
+  const [prefillDateForNewVisit, setPrefillDateForNewVisit] = useState(null);
+
   // 近くの保存済み（行きたい）スポット
   const [userLocation, setUserLocation] = useState(null); // { lat, lng }
   const [isLocatingNearby, setIsLocatingNearby] = useState(false);
@@ -683,6 +693,22 @@ function OdekakeLogMain() {
       setApiKeyInput('');
     }
   };
+
+  // 2b. 日付ごとの訪問記録（カレンダータブ用）。既存のvisits/placesから都度算出するだけで、
+  // カレンダー専用のデータは持たない。
+  const visitsByDate = useMemo(() => {
+    const map = {};
+    visits.forEach(v => {
+      const place = places.find(p => p.id === v.placeId);
+      const entry = {
+        ...v,
+        place: place || { name: '未登録の場所', address: '', category: 'other', lat: 0, lng: 0 }
+      };
+      if (!map[v.date]) map[v.date] = [];
+      map[v.date].push(entry);
+    });
+    return map;
+  }, [visits, places]);
 
   // 3. データ集計（場所ごとの訪問回数、最終訪問日）
   const enrichedPlaces = useMemo(() => {
@@ -1138,6 +1164,7 @@ function OdekakeLogMain() {
             <nav className="hidden lg:flex items-center gap-1 bg-neutral-100 rounded-full p-1">
               {[
                 { key: 'logs', label: '記録', icon: Calendar },
+                { key: 'calendar', label: 'カレンダー', icon: CalendarDays },
                 { key: 'places', label: '場所', icon: Clock },
                 { key: 'map', label: 'マップ', icon: MapIcon }
               ].map(({ key, label, icon: Icon }) => (
@@ -1202,7 +1229,7 @@ function OdekakeLogMain() {
         <main className="flex-1 overflow-y-auto px-4 lg:px-8 py-3 lg:py-5">
 
           {/* 検索・絞り込み（記録・場所タブ） */}
-          {activeTab !== 'map' && (
+          {(activeTab === 'logs' || activeTab === 'places') && (
             <div className="mb-3 space-y-2 lg:max-w-md">
               <div className="relative">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
@@ -1381,6 +1408,24 @@ function OdekakeLogMain() {
                 )
               )}
             </div>
+          )}
+
+          {/* TAB: カレンダー（月間カレンダーから日付ごとに振り返る） */}
+          {activeTab === 'calendar' && (
+            <CalendarViewComponent
+              calendarMonth={calendarMonth}
+              onMonthChange={setCalendarMonth}
+              visitsByDate={visitsByDate}
+              selectedDate={calendarSelectedDate}
+              onSelectDate={setCalendarSelectedDate}
+              onOpenPlace={(place) => setSelectedPlaceDetail(place)}
+              onAddForDate={(dateStr) => {
+                setPrefillDateForNewVisit(dateStr);
+                setEditingVisit(null);
+                setEditingPlace(null);
+                setIsRecordModalOpen(true);
+              }}
+            />
           )}
 
           {/* TAB 2: 場所（訪問済み／行きたいリストの切り替え） */}
@@ -1772,36 +1817,46 @@ function OdekakeLogMain() {
 
         </main>
 
-        {/* 下部ナビゲーション（記録 / 場所 / マップ） */}
-        <nav className="lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-neutral-200 px-8 py-2 flex items-center justify-between z-40 shadow-lg">
+        {/* 下部ナビゲーション（記録 / カレンダー / 場所 / マップ） */}
+        <nav className="lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-neutral-200 px-2 py-2 flex items-center justify-between z-40 shadow-lg">
           <button
             onClick={() => setActiveTab('logs')}
-            className={`flex flex-col items-center gap-1 transition-colors ${
+            className={`flex-1 flex flex-col items-center gap-0.5 transition-colors ${
               activeTab === 'logs' ? 'text-sky-600 font-bold' : 'text-neutral-400 hover:text-neutral-600 font-medium'
             }`}
           >
-            <Calendar className="w-5 h-5" />
-            <span className="text-[11px]">記録</span>
+            <Calendar className="w-[18px] h-[18px]" />
+            <span className="text-[10px]">記録</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('calendar')}
+            className={`flex-1 flex flex-col items-center gap-0.5 transition-colors ${
+              activeTab === 'calendar' ? 'text-sky-600 font-bold' : 'text-neutral-400 hover:text-neutral-600 font-medium'
+            }`}
+          >
+            <CalendarDays className="w-[18px] h-[18px]" />
+            <span className="text-[10px]">カレンダー</span>
           </button>
 
           <button
             onClick={() => setActiveTab('places')}
-            className={`flex flex-col items-center gap-1 transition-colors ${
+            className={`flex-1 flex flex-col items-center gap-0.5 transition-colors ${
               activeTab === 'places' ? 'text-sky-600 font-bold' : 'text-neutral-400 hover:text-neutral-600 font-medium'
             }`}
           >
-            <Clock className="w-5 h-5" />
-            <span className="text-[11px]">場所</span>
+            <Clock className="w-[18px] h-[18px]" />
+            <span className="text-[10px]">場所</span>
           </button>
 
           <button
             onClick={() => setActiveTab('map')}
-            className={`flex flex-col items-center gap-1 transition-colors ${
+            className={`flex-1 flex flex-col items-center gap-0.5 transition-colors ${
               activeTab === 'map' ? 'text-sky-600 font-bold' : 'text-neutral-400 hover:text-neutral-600 font-medium'
             }`}
           >
-            <MapIcon className="w-5 h-5" />
-            <span className="text-[11px]">マップ</span>
+            <MapIcon className="w-[18px] h-[18px]" />
+            <span className="text-[10px]">マップ</span>
           </button>
         </nav>
 
@@ -1814,9 +1869,11 @@ function OdekakeLogMain() {
               setEditingVisit(null);
               setEditingPlace(null);
               setConvertingWishlistId(null);
+              setPrefillDateForNewVisit(null);
             }}
             initialVisit={editingVisit}
             initialPlace={editingPlace}
+            initialDate={prefillDateForNewVisit}
             places={places}
             trips={trips}
             isMapsLoaded={isMapsLoaded}
@@ -1867,6 +1924,7 @@ function OdekakeLogMain() {
               setEditingVisit(null);
               setEditingPlace(null);
               setConvertingWishlistId(null);
+              setPrefillDateForNewVisit(null);
             }}
           />
         )}
@@ -2469,8 +2527,8 @@ function PlaceSearchField({
 // ==========================================
 // 記録モーダル（Places API 検索 ＋ フォールバック対応）
 // ==========================================
-function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, trips = [], isMapsLoaded, onOpenApiKeyModal, onToast, onSave }) {
-  const [date, setDate] = useState(initialVisit?.date || getTodayDateString());
+function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialDate, places, trips = [], isMapsLoaded, onOpenApiKeyModal, onToast, onSave }) {
+  const [date, setDate] = useState(initialVisit?.date || initialDate || getTodayDateString());
   const [rating, setRating] = useState(initialVisit?.rating || 5);
   const [note, setNote] = useState(initialVisit?.note || '');
   const [category, setCategory] = useState(initialPlace?.category || 'food');
@@ -3005,6 +3063,193 @@ function AreaSummaryCard({ area, onOpen }) {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+// ==========================================
+// カレンダーの日付グリッドを組み立てる
+// ==========================================
+function buildCalendarCells(year, month) {
+  const startWeekday = new Date(year, month, 1).getDay(); // 0=日
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < startWeekday; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+  return cells;
+}
+
+// ==========================================
+// カレンダータブ：月間カレンダー＋選択日の訪問記録
+// ==========================================
+const CALENDAR_WEEKDAY_LABELS = ['日', '月', '火', '水', '木', '金', '土'];
+
+function CalendarViewComponent({ calendarMonth, onMonthChange, visitsByDate, selectedDate, onSelectDate, onOpenPlace, onAddForDate }) {
+  const { year, month } = calendarMonth;
+  const cells = useMemo(() => buildCalendarCells(year, month), [year, month]);
+  const todayStr = getTodayDateString();
+
+  const goPrevMonth = () => {
+    const d = new Date(year, month - 1, 1);
+    onMonthChange({ year: d.getFullYear(), month: d.getMonth() });
+  };
+  const goNextMonth = () => {
+    const d = new Date(year, month + 1, 1);
+    onMonthChange({ year: d.getFullYear(), month: d.getMonth() });
+  };
+  const goToday = () => {
+    const now = new Date();
+    onMonthChange({ year: now.getFullYear(), month: now.getMonth() });
+    onSelectDate(getTodayDateString());
+  };
+
+  const selectedItems = selectedDate ? (visitsByDate[selectedDate] || []) : [];
+
+  return (
+    <div className="space-y-4 lg:max-w-md">
+      {/* 月間カレンダー */}
+      <div className="bg-white rounded-2xl border border-neutral-200/80 shadow-sm p-4">
+        <div className="flex items-center justify-between mb-3">
+          <button
+            onClick={goPrevMonth}
+            className="p-1.5 rounded-lg text-neutral-500 hover:bg-neutral-100"
+            aria-label="前の月"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button onClick={goToday} className="text-sm font-black text-neutral-900 px-2 py-0.5 rounded-lg hover:bg-neutral-50">
+            {year}年{month + 1}月
+          </button>
+          <button
+            onClick={goNextMonth}
+            className="p-1.5 rounded-lg text-neutral-500 hover:bg-neutral-100"
+            aria-label="次の月"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* 曜日ヘッダー */}
+        <div className="grid grid-cols-7 text-center text-[10px] font-bold mb-1.5">
+          {CALENDAR_WEEKDAY_LABELS.map((w, i) => (
+            <div key={w} className={i === 0 ? 'text-red-500' : i === 6 ? 'text-sky-600' : 'text-neutral-400'}>
+              {w}
+            </div>
+          ))}
+        </div>
+
+        {/* 日付グリッド */}
+        <div className="grid grid-cols-7 gap-1">
+          {cells.map((day, idx) => {
+            if (day === null) return <div key={idx} />;
+
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const dayItems = visitsByDate[dateStr] || [];
+            const weekday = idx % 7;
+            const isToday = dateStr === todayStr;
+            const isSelected = dateStr === selectedDate;
+
+            let colorClass = 'text-neutral-700 hover:bg-neutral-50';
+            if (weekday === 0) colorClass = 'text-red-500 hover:bg-red-50/60';
+            else if (weekday === 6) colorClass = 'text-sky-600 hover:bg-sky-50/60';
+
+            return (
+              <button
+                key={idx}
+                onClick={() => onSelectDate(dateStr)}
+                className={`relative aspect-square rounded-xl flex flex-col items-center justify-center gap-0.5 text-xs transition-colors ${
+                  isSelected
+                    ? 'bg-sky-500 text-white font-bold shadow-sm'
+                    : isToday
+                    ? `bg-sky-50 border border-sky-300 font-bold ${weekday === 0 ? 'text-red-500' : weekday === 6 ? 'text-sky-600' : 'text-sky-700'}`
+                    : colorClass
+                }`}
+              >
+                <span>{day}</span>
+                {dayItems.length > 0 && (
+                  dayItems.length === 1 ? (
+                    <span className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-sky-500'}`} />
+                  ) : (
+                    <span className={`text-[8px] font-bold leading-none px-1 py-px rounded-full ${isSelected ? 'bg-white/30 text-white' : 'bg-sky-500 text-white'}`}>
+                      {dayItems.length}
+                    </span>
+                  )
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 選択中の日付の訪問記録 */}
+      <div className="bg-white rounded-2xl border border-neutral-200/80 shadow-sm p-4">
+        {selectedDate ? (
+          <>
+            <div className="text-sm font-bold text-neutral-900 mb-3">
+              {formatDateWithWeekday(selectedDate)}
+            </div>
+            {selectedItems.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-xs text-neutral-400 mb-3">この日の記録はありません</p>
+                <button
+                  onClick={() => onAddForDate(selectedDate)}
+                  className="inline-flex items-center gap-1 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-4 py-2 rounded-full shadow-sm transition-all active:scale-95"
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>この日に記録する</span>
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {selectedItems.map(item => (
+                  <CalendarVisitRow
+                    key={item.id}
+                    item={item}
+                    onClick={() => onOpenPlace(item.place)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="text-xs text-neutral-400 text-center py-6">
+            日付をタップすると、その日の記録が表示されます。
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// カレンダー下部に表示する、1件分の簡潔な訪問記録行
+function CalendarVisitRow({ item, onClick }) {
+  const cat = CATEGORIES[item.place.category] || CATEGORIES.other;
+
+  return (
+    <div
+      onClick={onClick}
+      className="bg-neutral-50 rounded-xl p-3 border border-neutral-150 cursor-pointer hover:border-neutral-300 transition-all flex items-start gap-2.5"
+    >
+      {item.photos && item.photos.length > 0 ? (
+        <img src={item.photos[0]} alt="" className="w-11 h-11 rounded-lg object-cover flex-shrink-0 border border-neutral-200" />
+      ) : (
+        <div className={`w-11 h-11 rounded-lg flex-shrink-0 flex items-center justify-center ${cat.bg}`}>
+          <cat.icon className={`w-5 h-5 ${cat.text}`} />
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
+          <cat.icon className="w-2.5 h-2.5" />
+          {cat.label}
+        </span>
+        <h4 className="text-xs font-bold text-neutral-900 mt-1 truncate">{item.place.name}</h4>
+        <span className="text-amber-400 text-[11px]">{'★'.repeat(item.rating || 5)}</span>
+        {item.note && (
+          <p className="text-[11px] text-neutral-500 mt-0.5 truncate">{item.note}</p>
+        )}
+      </div>
+      <ChevronRight className="w-4 h-4 text-neutral-300 flex-shrink-0 mt-1" />
     </div>
   );
 }
