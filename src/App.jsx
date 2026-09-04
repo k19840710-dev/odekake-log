@@ -1223,10 +1223,10 @@ function OdekakeLogMain() {
                 )}
               </div>
 
-              <div className="-mx-4 px-4 lg:mx-0 lg:px-0 flex gap-1.5 overflow-x-auto snap-x snap-mandatory scroll-px-4 pb-1 text-xs">
+              <div className="flex flex-wrap gap-1.5 text-xs">
                 <button
                   onClick={() => setSelectedCategory('all')}
-                  className={`flex-shrink-0 snap-start px-3 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap ${
+                  className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap ${
                     selectedCategory === 'all'
                       ? 'bg-neutral-800 text-white'
                       : 'bg-white text-neutral-600 border border-neutral-200'
@@ -1238,7 +1238,7 @@ function OdekakeLogMain() {
                   <button
                     key={k}
                     onClick={() => setSelectedCategory(k)}
-                    className={`flex-shrink-0 snap-start px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap flex items-center gap-1 border ${
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap flex items-center gap-1 border ${
                       selectedCategory === k
                         ? `${cat.bg} ${cat.text} ${cat.border} ring-1 ring-current`
                         : 'bg-white text-neutral-600 border-neutral-200'
@@ -1248,7 +1248,6 @@ function OdekakeLogMain() {
                     <span>{cat.label}</span>
                   </button>
                 ))}
-                <div className="flex-shrink-0 w-1" aria-hidden="true" />
               </div>
             </div>
           )}
@@ -3516,10 +3515,10 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
           )}
         </div>
 
-        <div className="flex gap-1 overflow-x-auto snap-x snap-mandatory pb-1 text-xs pointer-events-auto">
+        <div className="flex flex-wrap gap-1 text-xs pointer-events-auto">
           <button
             onClick={() => setMapCategory('all')}
-            className={`flex-shrink-0 snap-start px-3 py-1 rounded-full text-[10px] font-bold shadow-md backdrop-blur-md transition-all whitespace-nowrap ${
+            className={`px-3 py-1 rounded-full text-[10px] font-bold shadow-md backdrop-blur-md transition-all whitespace-nowrap ${
               mapCategory === 'all' ? 'bg-neutral-900 text-white' : 'bg-white/90 text-neutral-700'
             }`}
           >
@@ -3529,7 +3528,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
             <button
               key={k}
               onClick={() => setMapCategory(k)}
-              className={`flex-shrink-0 snap-start px-2.5 py-1 rounded-full text-[10px] font-bold shadow-md backdrop-blur-md transition-all whitespace-nowrap flex items-center gap-1 ${
+              className={`px-2.5 py-1 rounded-full text-[10px] font-bold shadow-md backdrop-blur-md transition-all whitespace-nowrap flex items-center gap-1 ${
                 mapCategory === k ? 'bg-sky-600 text-white' : 'bg-white/90 text-neutral-700'
               }`}
             >
@@ -3537,7 +3536,6 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
               <span>{cat.label}</span>
             </button>
           ))}
-          <div className="flex-shrink-0 w-1" aria-hidden="true" />
         </div>
       </div>
 
