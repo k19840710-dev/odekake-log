@@ -2588,8 +2588,8 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-[7px]">
-      <div className="w-full max-w-[624px] bg-white rounded-3xl max-h-[95.5vh] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-5">
+      <div className="w-full max-w-[560px] bg-white rounded-3xl max-h-[93vh] flex flex-col shadow-2xl overflow-hidden">
         {/* モーダルヘッダー：タイトルと下の区切り線が間延びしないよう、
             下側のpaddingは控えめにする（上側・アイコンは現状維持） */}
         <div className="px-[26px] pt-4 pb-[10px] flex items-center justify-between flex-shrink-0">
@@ -3629,8 +3629,8 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
 
       marker.addListener('click', () => {
         const contentDiv = document.createElement('div');
-        contentDiv.style.padding = '4px';
-        contentDiv.style.maxWidth = '200px';
+        contentDiv.style.padding = '3px';
+        contentDiv.style.maxWidth = '176px';
         contentDiv.style.boxSizing = 'border-box';
 
         const title = document.createElement('div');
