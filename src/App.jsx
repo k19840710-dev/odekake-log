@@ -2430,7 +2430,7 @@ function PlaceSearchField({
       ) : (
         <>
           <div className="flex items-center justify-between">
-            <label className="block text-xs font-black text-sky-950 flex items-center gap-1.5">
+            <label className="block text-sm font-black text-sky-950 flex items-center gap-1.5">
               <Search className="w-[18px] h-[18px] text-sky-600" />
               <span>お店・場所を検索</span>
               <span className="text-[10px] bg-sky-500 text-white px-1.5 py-0.2 rounded font-bold">必須</span>
@@ -2454,7 +2454,7 @@ function PlaceSearchField({
               onChange={(e) => handleKeywordChange(e.target.value)}
               onCompositionStart={handleCompositionStart}
               onCompositionEnd={handleCompositionEnd}
-              className="w-full bg-white border border-sky-200 rounded-xl px-3 py-2 text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-sky-400 shadow-sm"
+              className="w-full bg-white border border-sky-200 rounded-xl px-3 py-2.5 text-[13px] text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-sky-400 shadow-sm"
             />
 
             {isSearching && (
@@ -2588,15 +2588,16 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-2">
-      <div className="w-full max-w-xl bg-white rounded-3xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden">
-        {/* モーダルヘッダー */}
-        <div className="px-6 pt-4 pb-3 flex items-center justify-between flex-shrink-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-1.5">
+      <div className="w-full max-w-2xl bg-white rounded-3xl max-h-[96vh] flex flex-col shadow-2xl overflow-hidden">
+        {/* モーダルヘッダー：タイトルと下の区切り線が間延びしないよう、
+            下側のpaddingは控えめにする（上側・アイコンは現状維持） */}
+        <div className="px-7 pt-4 pb-2 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
               <MapPin className="w-[24px] h-[24px]" />
             </div>
-            <h3 className="text-base font-bold text-neutral-900">
+            <h3 className="text-lg font-bold text-neutral-900">
               {initialVisit ? '訪問記録の編集' : '行った場所を記録'}
             </h3>
           </div>
@@ -2611,7 +2612,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-        <div className="px-6 py-3.5 overflow-y-auto space-y-3 flex-1 min-h-0">
+        <div className="px-7 py-4 overflow-y-auto space-y-3.5 flex-1 min-h-0">
 
           <PlaceSearchField
             isMapsLoaded={isMapsLoaded}
@@ -2628,7 +2629,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
 
           {/* 訪問日 */}
           <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1 flex items-center gap-1">
+            <label className="block text-sm font-bold text-neutral-700 mb-1.5 flex items-center gap-1">
               <Calendar className="w-[18px] h-[18px] text-sky-500" />
               <span>訪問日</span>
             </label>
@@ -2637,19 +2638,19 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm px-3 py-1.5 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+              className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm px-3 py-2 text-[13px] text-neutral-800 focus:outline-none focus:border-sky-400"
             />
           </div>
 
           {/* カテゴリー＆評価 */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-neutral-700 mb-1">カテゴリー</label>
+              <label className="block text-sm font-bold text-neutral-700 mb-1.5">カテゴリー</label>
               <div className="relative">
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm pl-2.5 pr-7 py-1.5 text-xs text-neutral-800 focus:outline-none"
+                  className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm pl-2.5 pr-7 py-2 text-[13px] text-neutral-800 focus:outline-none"
                 >
                   {Object.entries(CATEGORIES).map(([k, cat]) => (
                     <option key={k} value={k}>{cat.label}</option>
@@ -2660,12 +2661,12 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-neutral-700 mb-1">評価</label>
+              <label className="block text-sm font-bold text-neutral-700 mb-1.5">評価</label>
               <div className="relative">
                 <select
                   value={rating}
                   onChange={(e) => setRating(Number(e.target.value))}
-                  className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm pl-2.5 pr-7 py-1.5 text-xs text-neutral-800 focus:outline-none"
+                  className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm pl-2.5 pr-7 py-2 text-[13px] text-neutral-800 focus:outline-none"
                 >
                   <option value={5}>⭐⭐⭐⭐⭐ (5点)</option>
                   <option value={4}>⭐⭐⭐⭐ (4点)</option>
@@ -2680,7 +2681,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
 
           {/* メモ */}
           <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1">
+            <label className="block text-sm font-bold text-neutral-700 mb-1.5">
               訪問時のメモ・感想
             </label>
             <textarea
@@ -2688,15 +2689,15 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
               placeholder="おすすめの料理、店内の雰囲気、混雑具合など..."
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm px-3 py-1.5 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+              className="w-full bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm px-3 py-2 text-[13px] text-neutral-800 focus:outline-none focus:border-sky-400"
             />
           </div>
 
           {/* 写真（思い出ログとして、控えめなサムネイル表示） */}
           <div>
-            <label className="flex items-center justify-between text-xs font-bold text-neutral-700 mb-1">
+            <label className="flex items-center justify-between text-sm font-bold text-neutral-700 mb-1.5">
               <span>写真</span>
-              <span className="text-[10px] text-neutral-400 font-normal">{photos.length}/{MAX_PHOTOS}枚</span>
+              <span className="text-[11px] text-neutral-400 font-normal">{photos.length}/{MAX_PHOTOS}枚</span>
             </label>
             <div className="flex gap-2 flex-wrap">
               {photos.map((src, idx) => (
@@ -2724,7 +2725,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
                   ) : (
                     <Camera className="w-[18px] h-[18px]" />
                   )}
-                  <span className="text-[8px] mt-0.5">追加</span>
+                  <span className="text-[9px] mt-0.5">追加</span>
                 </button>
               )}
             </div>
@@ -2741,12 +2742,12 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
           {/* 旅行への紐付け（任意） */}
           {trips.length > 0 && (
             <div>
-              <label className="block text-xs font-bold text-neutral-700 mb-1">旅行（任意）</label>
+              <label className="block text-sm font-bold text-neutral-700 mb-1.5">旅行（任意）</label>
               <div className="relative">
                 <select
                   value={tripId}
                   onChange={(e) => setTripId(e.target.value)}
-                  className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm pl-2.5 pr-7 py-1.5 text-xs text-neutral-800 focus:outline-none"
+                  className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm pl-2.5 pr-7 py-2 text-[13px] text-neutral-800 focus:outline-none"
                 >
                   <option value="">なし（通常の記録）</option>
                   {trips.map(t => (
@@ -2762,10 +2763,10 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
         {/* 保存ボタン：入力欄のスクロールに関わらず常に下部に固定表示。
             区切り線は引かず、余白だけで自然につなげる。主操作なので
             他の項目より一回り大きいタップ領域・文字サイズにする */}
-        <div className="px-6 pt-1 pb-4 flex-shrink-0">
+        <div className="px-7 pt-1 pb-4 flex-shrink-0">
           <button
             type="submit"
-            className="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3.5 rounded-2xl shadow-md transition-all active:scale-[0.98] text-sm"
+            className="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-4 rounded-2xl shadow-md transition-all active:scale-[0.98] text-base"
           >
             {initialVisit ? '記録を更新する' : 'この内容で記録する'}
           </button>

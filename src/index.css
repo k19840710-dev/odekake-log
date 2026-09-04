@@ -4,12 +4,23 @@
 
 /* Google Maps の InfoWindow 標準の閉じるボタンは内側・下寄りに見えるため、
    カード右上の「閉じるボタン」らしい位置に少しだけ寄せる。
+   本文（店名の1行目）と縦位置が揃うよう、上端ぎりぎりではなく
+   本文の開始位置に近い高さへ配置する。
    Google側のDOM/クラス名が変わってもレイアウトが崩れないよう、
    位置調整のみを行い、要素の削除・重複描画は一切行わない。 */
 .gm-style-iw-c > button.gm-ui-hover-effect,
 .gm-style-iw-chr > button.gm-ui-hover-effect {
-  top: 2px !important;
-  right: 2px !important;
+  top: 16px !important;
+  right: 4px !important;
+}
+
+/* ×アイコン自体は少し控えめな見た目にしつつ、ボタン本体（タップ領域）
+   のサイズは変えない。アイコンを内包する子要素だけを縮小することで、
+   クリック判定は親のbuttonのまま維持する。Google側の内部構造に
+   依存するため、該当する子要素が無い場合は何も起きない安全な指定。 */
+.gm-style-iw-c > button.gm-ui-hover-effect > *,
+.gm-style-iw-chr > button.gm-ui-hover-effect > * {
+  transform: scale(0.85);
 }
 
 /* Google Maps の InfoWindow は、閉じるボタン用のヘッダー行
