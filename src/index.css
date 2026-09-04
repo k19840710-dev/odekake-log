@@ -10,17 +10,29 @@
    位置調整のみを行い、要素の削除・重複描画は一切行わない。 */
 .gm-style-iw-c > button.gm-ui-hover-effect,
 .gm-style-iw-chr > button.gm-ui-hover-effect {
-  top: 16px !important;
-  right: 4px !important;
+  top: 9px !important;
+  right: 3px !important;
 }
 
-/* ×アイコン自体は少し控えめな見た目にしつつ、ボタン本体（タップ領域）
-   のサイズは変えない。アイコンを内包する子要素だけを縮小することで、
-   クリック判定は親のbuttonのまま維持する。Google側の内部構造に
-   依存するため、該当する子要素が無い場合は何も起きない安全な指定。 */
-.gm-style-iw-c > button.gm-ui-hover-effect > *,
-.gm-style-iw-chr > button.gm-ui-hover-effect > * {
-  transform: scale(0.85);
+/* ×アイコン自体の表示サイズを明確に縮小する。ボタン本体
+   （.gm-ui-hover-effect自身のwidth/height/padding）はタップ領域を
+   維持するためそのまま変更せず、Googleが内部に描画するアイコン要素
+   （imgとして描画される場合はwidth/height、文字・フォントアイコンと
+   して描画される場合はfont-sizeで見た目のサイズが決まる）の両方に
+   直接指定することで、どちらの実装でも確実に縮小されるようにする。
+   transform:scaleは見た目上ほぼ変化しないケースがあったため、
+   実サイズそのものを上書きする方式に変更した。 */
+.gm-style-iw-c > button.gm-ui-hover-effect img,
+.gm-style-iw-chr > button.gm-ui-hover-effect img,
+.gm-style-iw-c > button.gm-ui-hover-effect span,
+.gm-style-iw-chr > button.gm-ui-hover-effect span {
+  width: 11px !important;
+  height: 11px !important;
+  font-size: 11px !important;
+  line-height: 11px !important;
+  /* spanは既定でinlineのためwidth/heightが効かない。
+     アイコン用spanである前提でinline-blockに切り替えて確実に反映する。 */
+  display: inline-block !important;
 }
 
 /* Google Maps の InfoWindow は、閉じるボタン用のヘッダー行
