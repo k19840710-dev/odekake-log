@@ -2,37 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 閉じるボタンを「店名の隣」ではなく「カード右上の独立した角」に
-   固定する。Googleのデフォルトだと、ボタンの位置がheader行自身の
-   余白・幅に引きずられて店名寄りにずれることがあるため、
-   ボタンを.gm-style-iw-c（カード本体）基準で直接絶対配置し、
-   header行側の余白もすべてリセットして影響を断つ。
-   店名の長さに関わらず×の位置が動かないよう、店名側の余白
-   （JS側のtitle要素のpadding-right）とは独立してここで完結させる。 */
-.gm-style-iw-c {
-  position: relative !important;
-}
-.gm-style-iw-chr {
-  margin: 0 !important;
-  padding: 0 !important;
-}
+/* Google Maps の InfoWindow：閉じるボタンの見た目だけを軽く調整する。
+   以前は閉じるボタン用のヘッダー行（.gm-style-iw-chr）自体の高さ・
+   positionを書き換えて畳んでいたが、それがGoogle内部の「吹き出しの
+   三角形をピンの中心に合わせるための高さ計算」を狂わせ、ポップアップが
+   選択中のピンから大きく離れた位置に表示される不具合の原因になって
+   いた。そのためレイアウト（高さ・position・padding）には一切触れず、
+   既存の要素はそのままの構造・流れで残し、ボタンの位置とアイコンの
+   見た目サイズだけを上書きする。 */
 .gm-style-iw-c > button.gm-ui-hover-effect,
 .gm-style-iw-chr > button.gm-ui-hover-effect {
-  position: absolute !important;
-  top: 10px !important;
-  right: 10px !important;
-  left: auto !important;
-  margin: 0 !important;
+  top: 6px !important;
+  right: 6px !important;
 }
 
-/* ×アイコン自体の表示サイズを明確に縮小する。ボタン本体
-   （.gm-ui-hover-effect自身のwidth/height/padding）はタップ領域を
-   維持するためそのまま変更せず、Googleが内部に描画するアイコン要素
-   （imgとして描画される場合はwidth/height、文字・フォントアイコンと
-   して描画される場合はfont-sizeで見た目のサイズが決まる）の両方に
-   直接指定することで、どちらの実装でも確実に縮小されるようにする。
-   transform:scaleは見た目上ほぼ変化しないケースがあったため、
-   実サイズそのものを上書きする方式に変更した。 */
 .gm-style-iw-c > button.gm-ui-hover-effect img,
 .gm-style-iw-chr > button.gm-ui-hover-effect img,
 .gm-style-iw-c > button.gm-ui-hover-effect span,
@@ -41,34 +24,5 @@
   height: 11px !important;
   font-size: 11px !important;
   line-height: 11px !important;
-  /* spanは既定でinlineのためwidth/heightが効かない。
-     アイコン用spanである前提でinline-blockに切り替えて確実に反映する。 */
   display: inline-block !important;
-}
-
-/* Google Maps の InfoWindow は、閉じるボタン用のヘッダー行
-   （.gm-style-iw-chr）に本文とは無関係の大きな高さを確保するため、
-   店名の上に不要な空白ができてしまう。ヘッダー行を折りたたみ、
-   閉じるボタンだけを右上に絶対配置し直すことで、本文をカードの
-   上端近くまで詰める（要素の削除は行わず、位置調整のみ）。 */
-.gm-style-iw-chr {
-  height: 0 !important;
-  min-height: 0 !important;
-  overflow: visible !important;
-  position: absolute !important;
-  top: 0 !important;
-  right: 0 !important;
-}
-.gm-style-iw-d {
-  overflow: hidden !important;
-}
-.gm-style-iw-c {
-  padding-top: 16px !important;
-  /* 閉じるボタンの主な避け幅は店名要素自身のpadding-right（JS側、18px）
-     が担っているため、コンテナ側はごく小さめの左右均等paddingで足りる。
-     左右を同じ量にすることで、外枠の中心とテキストの中心を一致させつつ
-     （＝ポップアップがピンより左寄りに見える問題の対策）、吹き出し全体が
-     必要以上に大きくならないようにする。 */
-  padding-right: 12px !important;
-  padding-left: 12px !important;
 }
