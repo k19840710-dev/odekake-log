@@ -63,11 +63,10 @@ const CATEGORIES = {
 // カテゴリーの絵文字＋色から、地図ピン用のSVGアイコン（data URI）を作る
 // Googleマップのスポットアイコンのように、白背景の丸バッジに絵文字を乗せ、
 // カテゴリーカラーは縁取りだけで表現する（吹き出しの尻尾は持たない）
-function buildEmojiMarkerIcon(emoji, color, faded = false) {
-  const opacity = faded ? 0.65 : 1;
+function buildEmojiMarkerIcon(emoji, color) {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30">
-      <circle cx="15" cy="15" r="13" fill="#ffffff" stroke="${color}" stroke-width="2" opacity="${opacity}"/>
+      <circle cx="15" cy="15" r="13" fill="#ffffff" stroke="${color}" stroke-width="2"/>
       <text x="15" y="20" font-size="14" text-anchor="middle">${emoji}</text>
     </svg>
   `.trim();
@@ -2743,7 +2742,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
         position,
         map,
         title: place.name,
-        icon: buildEmojiMarkerIcon(cat.emoji, cat.color, mapViewMode === 'wishlist')
+        icon: buildEmojiMarkerIcon(cat.emoji, cat.color)
       });
 
       marker.addListener('click', () => {
