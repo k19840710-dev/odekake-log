@@ -4,9 +4,57 @@
 
 /* Google Maps の InfoWindow 標準の閉じるボタンは内側・下寄りに見えるため、
    カード右上の「閉じるボタン」らしい位置に少しだけ寄せる。
+   本文（店名の1行目）と縦位置が揃うよう、上端ぎりぎりではなく
+   本文の開始位置に近い高さへ配置する。
    Google側のDOM/クラス名が変わってもレイアウトが崩れないよう、
    位置調整のみを行い、要素の削除・重複描画は一切行わない。 */
-.gm-style-iw-c > button.gm-ui-hover-effect {
-  top: 2px !important;
-  right: 2px !important;
+.gm-style-iw-c > button.gm-ui-hover-effect,
+.gm-style-iw-chr > button.gm-ui-hover-effect {
+  top: 9px !important;
+  right: 3px !important;
+}
+
+/* ×アイコン自体の表示サイズを明確に縮小する。ボタン本体
+   （.gm-ui-hover-effect自身のwidth/height/padding）はタップ領域を
+   維持するためそのまま変更せず、Googleが内部に描画するアイコン要素
+   （imgとして描画される場合はwidth/height、文字・フォントアイコンと
+   して描画される場合はfont-sizeで見た目のサイズが決まる）の両方に
+   直接指定することで、どちらの実装でも確実に縮小されるようにする。
+   transform:scaleは見た目上ほぼ変化しないケースがあったため、
+   実サイズそのものを上書きする方式に変更した。 */
+.gm-style-iw-c > button.gm-ui-hover-effect img,
+.gm-style-iw-chr > button.gm-ui-hover-effect img,
+.gm-style-iw-c > button.gm-ui-hover-effect span,
+.gm-style-iw-chr > button.gm-ui-hover-effect span {
+  width: 11px !important;
+  height: 11px !important;
+  font-size: 11px !important;
+  line-height: 11px !important;
+  /* spanは既定でinlineのためwidth/heightが効かない。
+     アイコン用spanである前提でinline-blockに切り替えて確実に反映する。 */
+  display: inline-block !important;
+}
+
+/* Google Maps の InfoWindow は、閉じるボタン用のヘッダー行
+   （.gm-style-iw-chr）に本文とは無関係の大きな高さを確保するため、
+   店名の上に不要な空白ができてしまう。ヘッダー行を折りたたみ、
+   閉じるボタンだけを右上に絶対配置し直すことで、本文をカードの
+   上端近くまで詰める（要素の削除は行わず、位置調整のみ）。 */
+.gm-style-iw-chr {
+  height: 0 !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+}
+.gm-style-iw-d {
+  overflow: hidden !important;
+}
+.gm-style-iw-c {
+  padding-top: 20px !important;
+  /* 閉じるボタンをヘッダー行から絶対配置に切り替えたぶん、
+     本文側で右側のスペースを確保しておかないと、長い店名が
+     ×ボタンの下に潜り込んで重なって見えてしまう。 */
+  padding-right: 28px !important;
 }

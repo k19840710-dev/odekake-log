@@ -1143,7 +1143,7 @@ function OdekakeLogMain() {
           <div className="flex items-center gap-2 lg:gap-6">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-sky-500 text-white flex items-center justify-center shadow-sm">
-                <MapPin className="w-[21px] h-[21px]" />
+                <MapPin className="w-[23px] h-[23px]" />
               </div>
               <div>
                 <h1 className="text-sm font-black text-neutral-900 tracking-tight">おでかけログ</h1>
@@ -1182,7 +1182,7 @@ function OdekakeLogMain() {
               }`}
               title="Google Maps APIキー設定"
             >
-              <Key className="w-[21px] h-[21px]" />
+              <Key className="w-[23px] h-[23px]" />
             </button>
 
             {/* 新規登録ボタン */}
@@ -1194,7 +1194,7 @@ function OdekakeLogMain() {
               }}
               className="flex items-center gap-1 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm transition-all active:scale-95"
             >
-              <Plus className="w-[18px] h-[18px] stroke-[2.5]" />
+              <Plus className="w-[20px] h-[20px] stroke-[2.5]" />
               <span>記録する</span>
             </button>
           </div>
@@ -1811,41 +1811,41 @@ function OdekakeLogMain() {
         <nav className="lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-neutral-200 px-2 py-2 flex items-center justify-between z-40 shadow-lg">
           <button
             onClick={() => setActiveTab('logs')}
-            className={`flex-1 flex flex-col items-center gap-1.5 transition-colors ${
+            className={`flex-1 flex flex-col items-center gap-1 transition-colors ${
               activeTab === 'logs' ? 'text-sky-600 font-bold' : 'text-neutral-400 hover:text-neutral-600 font-medium'
             }`}
           >
-            <Calendar className="w-[24px] h-[24px]" />
+            <Calendar className="w-[22px] h-[22px]" />
             <span className="text-[10px]">記録</span>
           </button>
 
           <button
             onClick={() => setActiveTab('calendar')}
-            className={`flex-1 flex flex-col items-center gap-1.5 transition-colors ${
+            className={`flex-1 flex flex-col items-center gap-1 transition-colors ${
               activeTab === 'calendar' ? 'text-sky-600 font-bold' : 'text-neutral-400 hover:text-neutral-600 font-medium'
             }`}
           >
-            <CalendarDays className="w-[24px] h-[24px]" />
+            <CalendarDays className="w-[22px] h-[22px]" />
             <span className="text-[10px]">カレンダー</span>
           </button>
 
           <button
             onClick={() => setActiveTab('places')}
-            className={`flex-1 flex flex-col items-center gap-1.5 transition-colors ${
+            className={`flex-1 flex flex-col items-center gap-1 transition-colors ${
               activeTab === 'places' ? 'text-sky-600 font-bold' : 'text-neutral-400 hover:text-neutral-600 font-medium'
             }`}
           >
-            <Clock className="w-[24px] h-[24px]" />
+            <Clock className="w-[22px] h-[22px]" />
             <span className="text-[10px]">場所</span>
           </button>
 
           <button
             onClick={() => setActiveTab('map')}
-            className={`flex-1 flex flex-col items-center gap-1.5 transition-colors ${
+            className={`flex-1 flex flex-col items-center gap-1 transition-colors ${
               activeTab === 'map' ? 'text-sky-600 font-bold' : 'text-neutral-400 hover:text-neutral-600 font-medium'
             }`}
           >
-            <MapIcon className="w-[24px] h-[24px]" />
+            <MapIcon className="w-[22px] h-[22px]" />
             <span className="text-[10px]">マップ</span>
           </button>
         </nav>
@@ -2430,7 +2430,7 @@ function PlaceSearchField({
       ) : (
         <>
           <div className="flex items-center justify-between">
-            <label className="block text-xs font-black text-sky-950 flex items-center gap-1.5">
+            <label className="block text-[13px] font-black text-sky-950 flex items-center gap-1.5">
               <Search className="w-[18px] h-[18px] text-sky-600" />
               <span>お店・場所を検索</span>
               <span className="text-[10px] bg-sky-500 text-white px-1.5 py-0.2 rounded font-bold">必須</span>
@@ -2454,7 +2454,7 @@ function PlaceSearchField({
               onChange={(e) => handleKeywordChange(e.target.value)}
               onCompositionStart={handleCompositionStart}
               onCompositionEnd={handleCompositionEnd}
-              className="w-full bg-white border border-sky-200 rounded-xl px-3 py-2 text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-sky-400 shadow-sm"
+              className="w-full bg-white border border-sky-200 rounded-xl px-3 py-[9px] text-[12.5px] text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-sky-400 shadow-sm"
             />
 
             {isSearching && (
@@ -2588,15 +2588,16 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-        {/* モーダルヘッダー */}
-        <div className="px-5 py-3 border-b border-neutral-150 flex items-center justify-between flex-shrink-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-[7px]">
+      <div className="w-full max-w-[624px] bg-white rounded-3xl max-h-[95.5vh] flex flex-col shadow-2xl overflow-hidden">
+        {/* モーダルヘッダー：タイトルと下の区切り線が間延びしないよう、
+            下側のpaddingは控えめにする（上側・アイコンは現状維持） */}
+        <div className="px-[26px] pt-4 pb-[10px] flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
-              <MapPin className="w-[21px] h-[21px]" />
+            <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
+              <MapPin className="w-[24px] h-[24px]" />
             </div>
-            <h3 className="text-sm font-bold text-neutral-900">
+            <h3 className="text-[17px] font-bold text-neutral-900">
               {initialVisit ? '訪問記録の編集' : '行った場所を記録'}
             </h3>
           </div>
@@ -2605,8 +2606,13 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
           </button>
         </div>
 
+        {/* ヘッダー下の区切り線:全幅ではなく中央に短く配置し、主張しすぎないようにする */}
+        <div className="flex justify-center flex-shrink-0">
+          <div className="w-[88%] border-t border-neutral-150" />
+        </div>
+
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-        <div className="px-5 pt-2 pb-3.5 overflow-y-auto space-y-3 flex-1 min-h-0">
+        <div className="px-[26px] py-[15px] overflow-y-auto space-y-[13px] flex-1 min-h-0">
 
           <PlaceSearchField
             isMapsLoaded={isMapsLoaded}
@@ -2623,7 +2629,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
 
           {/* 訪問日 */}
           <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1 flex items-center gap-1">
+            <label className="block text-[13px] font-bold text-neutral-700 mb-[5px] flex items-center gap-1">
               <Calendar className="w-[18px] h-[18px] text-sky-500" />
               <span>訪問日</span>
             </label>
@@ -2632,19 +2638,19 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm px-3 py-1.5 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+              className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm px-3 py-[7px] text-[12.5px] text-neutral-800 focus:outline-none focus:border-sky-400"
             />
           </div>
 
           {/* カテゴリー＆評価 */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-neutral-700 mb-1">カテゴリー</label>
+              <label className="block text-[13px] font-bold text-neutral-700 mb-[5px]">カテゴリー</label>
               <div className="relative">
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm pl-2.5 pr-7 py-1.5 text-xs text-neutral-800 focus:outline-none"
+                  className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm pl-2.5 pr-7 py-[7px] text-[12.5px] text-neutral-800 focus:outline-none"
                 >
                   {Object.entries(CATEGORIES).map(([k, cat]) => (
                     <option key={k} value={k}>{cat.label}</option>
@@ -2655,12 +2661,12 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-neutral-700 mb-1">評価</label>
+              <label className="block text-[13px] font-bold text-neutral-700 mb-[5px]">評価</label>
               <div className="relative">
                 <select
                   value={rating}
                   onChange={(e) => setRating(Number(e.target.value))}
-                  className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm pl-2.5 pr-7 py-1.5 text-xs text-neutral-800 focus:outline-none"
+                  className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm pl-2.5 pr-7 py-[7px] text-[12.5px] text-neutral-800 focus:outline-none"
                 >
                   <option value={5}>⭐⭐⭐⭐⭐ (5点)</option>
                   <option value={4}>⭐⭐⭐⭐ (4点)</option>
@@ -2675,7 +2681,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
 
           {/* メモ */}
           <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1">
+            <label className="block text-[13px] font-bold text-neutral-700 mb-[5px]">
               訪問時のメモ・感想
             </label>
             <textarea
@@ -2683,15 +2689,15 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
               placeholder="おすすめの料理、店内の雰囲気、混雑具合など..."
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm px-3 py-1.5 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+              className="w-full bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm px-3 py-[7px] text-[12.5px] text-neutral-800 focus:outline-none focus:border-sky-400"
             />
           </div>
 
           {/* 写真（思い出ログとして、控えめなサムネイル表示） */}
           <div>
-            <label className="flex items-center justify-between text-xs font-bold text-neutral-700 mb-1">
+            <label className="flex items-center justify-between text-[13px] font-bold text-neutral-700 mb-[5px]">
               <span>写真</span>
-              <span className="text-[10px] text-neutral-400 font-normal">{photos.length}/{MAX_PHOTOS}枚</span>
+              <span className="text-[10.5px] text-neutral-400 font-normal">{photos.length}/{MAX_PHOTOS}枚</span>
             </label>
             <div className="flex gap-2 flex-wrap">
               {photos.map((src, idx) => (
@@ -2719,7 +2725,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
                   ) : (
                     <Camera className="w-[18px] h-[18px]" />
                   )}
-                  <span className="text-[8px] mt-0.5">追加</span>
+                  <span className="text-[8.5px] mt-0.5">追加</span>
                 </button>
               )}
             </div>
@@ -2736,12 +2742,12 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
           {/* 旅行への紐付け（任意） */}
           {trips.length > 0 && (
             <div>
-              <label className="block text-xs font-bold text-neutral-700 mb-1">旅行（任意）</label>
+              <label className="block text-[13px] font-bold text-neutral-700 mb-[5px]">旅行（任意）</label>
               <div className="relative">
                 <select
                   value={tripId}
                   onChange={(e) => setTripId(e.target.value)}
-                  className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm pl-2.5 pr-7 py-1.5 text-xs text-neutral-800 focus:outline-none"
+                  className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm pl-2.5 pr-7 py-[7px] text-[12.5px] text-neutral-800 focus:outline-none"
                 >
                   <option value="">なし（通常の記録）</option>
                   {trips.map(t => (
@@ -2754,11 +2760,13 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
           )}
         </div>
 
-        {/* 保存ボタン：入力欄のスクロールに関わらず常に下部に固定表示 */}
-        <div className="px-5 py-3 border-t border-neutral-150 flex-shrink-0">
+        {/* 保存ボタン：入力欄のスクロールに関わらず常に下部に固定表示。
+            区切り線は引かず、余白だけで自然につなげる。主操作なので
+            他の項目より一回り大きいタップ領域・文字サイズにする */}
+        <div className="px-[26px] pt-1 pb-4 flex-shrink-0">
           <button
             type="submit"
-            className="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-2xl shadow-md transition-all active:scale-[0.98] text-xs"
+            className="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-[15px] rounded-2xl shadow-md transition-all active:scale-[0.98] text-[15px]"
           >
             {initialVisit ? '記録を更新する' : 'この内容で記録する'}
           </button>
@@ -3405,18 +3413,19 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onAddVisit, onDeletePla
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
       <div className="w-full max-w-md bg-white rounded-3xl max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
         {/* ヘッダー：カテゴリ／×／店名／住所を1つの塊にまとめ、
-            余計な余白や区切り線で間延びさせない */}
+            余計な余白や区切り線で間延びさせない。ただし上端に詰まり
+            すぎないよう、コンテナ側のpaddingで少しだけ呼吸させる */}
         <div className="px-5 pt-4 pb-3">
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center justify-between gap-2">
             <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
               <cat.icon className="w-4 h-4" />
               {cat.label}
             </span>
-            <button onClick={onClose} className="p-1.5 -mr-1.5 -mt-1 text-neutral-400 hover:text-neutral-600 rounded-lg flex-shrink-0">
-              <X className="w-[25px] h-[25px]" />
+            <button onClick={onClose} className="p-1.5 -mr-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg flex-shrink-0">
+              <X className="w-[20px] h-[20px]" />
             </button>
           </div>
-          <h3 className="text-lg font-black text-neutral-900 leading-tight mt-1.5">{place.name}</h3>
+          <h3 className="text-lg font-black text-neutral-900 leading-tight mt-4">{place.name}</h3>
           <p className="text-xs text-neutral-500 mt-1">{place.address}</p>
         </div>
 
@@ -3540,6 +3549,10 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
   // 折り返っても、APIキー未設定時のフォールバック表示と重ならないよう、
   // 固定値ではなくResizeObserverで実測してその分だけ下に余白を空ける。
   const [overlayHeight, setOverlayHeight] = useState(150);
+  // APIキー未設定時のフォールバック一覧：内部スクロールにせず、
+  // 初期は数件だけ表示して「もっと見る」で全件展開する
+  const [showAllFallbackSpots, setShowAllFallbackSpots] = useState(false);
+  const FALLBACK_SPOTS_INITIAL_COUNT = 4;
 
   // 「行った」／「行きたい」のどちらを地図に表示するか
   const sourceList = useMemo(
@@ -3618,10 +3631,22 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
         const contentDiv = document.createElement('div');
         contentDiv.style.padding = '4px';
         contentDiv.style.maxWidth = '200px';
+        contentDiv.style.boxSizing = 'border-box';
 
         const title = document.createElement('div');
         title.style.fontWeight = 'bold';
         title.style.fontSize = '13px';
+        title.style.lineHeight = '1.35';
+        // ×ボタン（InfoWindow右上に絶対配置）の下に店名が潜り込んで
+        // 重ならないよう、右側に専用スペースを確保しつつ、長い店名は
+        // 折り返して最大2行までに収める（それ以上は省略記号で切る）。
+        title.style.paddingRight = '18px';
+        title.style.boxSizing = 'border-box';
+        title.style.display = '-webkit-box';
+        title.style.webkitLineClamp = '2';
+        title.style.webkitBoxOrient = 'vertical';
+        title.style.overflow = 'hidden';
+        title.style.wordBreak = 'break-word';
         title.textContent = `${cat.emoji} ${place.name}`;
         contentDiv.appendChild(title);
 
@@ -3709,8 +3734,19 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
     return () => observer.disconnect();
   }, [mapCategory, mapViewMode]);
 
+  // 表示対象（行った／行きたい）を切り替えたら、展開状態をリセットする
+  useEffect(() => {
+    setShowAllFallbackSpots(false);
+  }, [mapViewMode]);
+
   return (
-    <div className="flex flex-col h-[calc(100vh-135px)] lg:h-[calc(100vh-160px)] relative rounded-2xl overflow-hidden border border-neutral-200 shadow-sm">
+    <div
+      className={`flex flex-col relative rounded-2xl border border-neutral-200 shadow-sm ${
+        isLoaded
+          ? 'h-[calc(100vh-135px)] lg:h-[calc(100vh-160px)] overflow-hidden'
+          : 'min-h-[calc(100vh-135px)] lg:min-h-[calc(100vh-160px)] overflow-visible'
+      }`}
+    >
 
       {/* 検索・カテゴリー */}
       <div ref={overlayRef} className="absolute top-3 left-3 right-3 z-20 flex flex-col gap-2 pointer-events-none">
@@ -3796,7 +3832,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
           ここでは重複させず、そのぶんの高さを空けるだけにする */}
       {!isLoaded && (
         <div
-          className="absolute inset-0 z-10 bg-neutral-50/95 flex flex-col px-4 pb-4 overflow-y-auto"
+          className="relative z-10 bg-neutral-50/95 flex flex-col px-4 pb-4"
           style={{ paddingTop: overlayHeight + 24 }}
         >
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center mb-3">
@@ -3816,8 +3852,10 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
             {mapViewMode === 'wishlist' ? '行きたい場所一覧' : '登録済みスポット一覧'} ({sourceList.length}件):
           </div>
 
-          <div className="space-y-2 flex-1">
-            {sourceList.map(p => {
+          {/* 一覧内部の独立スクロールは廃止し、ページ全体のスクロールに委ねる。
+              初期は数件のみ表示し、「もっと見る」で残りを下方向に展開する。 */}
+          <div className="space-y-2">
+            {(showAllFallbackSpots ? sourceList : sourceList.slice(0, FALLBACK_SPOTS_INITIAL_COUNT)).map(p => {
               const cat = CATEGORIES[p.category] || CATEGORIES.other;
               return (
                 <div
@@ -3840,6 +3878,16 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
               );
             })}
           </div>
+
+          {sourceList.length > FALLBACK_SPOTS_INITIAL_COUNT && (
+            <button
+              type="button"
+              onClick={() => setShowAllFallbackSpots(prev => !prev)}
+              className="mt-3 w-full text-center text-sky-600 hover:text-sky-700 hover:bg-sky-50 text-xs font-bold py-2 rounded-xl transition-colors"
+            >
+              {showAllFallbackSpots ? '表示を減らす' : `もっと見る（残り${sourceList.length - FALLBACK_SPOTS_INITIAL_COUNT}件）`}
+            </button>
+          )}
         </div>
       )}
     </div>
