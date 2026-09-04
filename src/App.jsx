@@ -483,7 +483,7 @@ export default function App() {
 }
 
 function OdekakeLogMain() {
-  const [activeTab, setActiveTab] = useState('logs'); // 'logs' (記録) | 'places' (場所) | 'map' (マップ)
+  const [activeTab, setActiveTab] = useState('logs'); // 'logs' (タイムライン) | 'calendar' | 'wishlist' (行きたい) | 'map'
 
   // APIキーの取得（ブラウザ安全な参照のみ）
   const [apiKey, setApiKey] = useState(() => {
@@ -511,9 +511,8 @@ function OdekakeLogMain() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
-  // 「場所」タブ内の切り替え（訪問済み／行きたい）と「記録」タブの並び替え軸
-  const [placesSubView, setPlacesSubView] = useState('visited'); // 'visited' | 'wishlist'
-  const [logsGroupBy, setLogsGroupBy] = useState('month'); // 'month' | 'trip' | 'area'
+  // 「タイムライン」タブの並び替え軸（月別／旅行別／エリア別／場所別）
+  const [logsGroupBy, setLogsGroupBy] = useState('month'); // 'month' | 'trip' | 'area' | 'places'
 
   // 旅行・エリアの詳細表示、旅行作成モーダル
   const [openTripDetailId, setOpenTripDetailId] = useState(null);
@@ -540,7 +539,6 @@ function OdekakeLogMain() {
   const [editingVisit, setEditingVisit] = useState(null);
   const [editingPlace, setEditingPlace] = useState(null);
   const [convertingWishlistId, setConvertingWishlistId] = useState(null);
-  const [isWishlistModalOpen, setIsWishlistModalOpen] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [selectedPlaceDetail, setSelectedPlaceDetail] = useState(null);
   const [targetPlaceForMap, setTargetPlaceForMap] = useState(null);
@@ -1154,9 +1152,9 @@ function OdekakeLogMain() {
             {/* デスクトップ用のタブ切り替え（画面幅が広いときはヘッダー内に表示） */}
             <nav className="hidden lg:flex items-center gap-1 bg-neutral-100 rounded-full p-1">
               {[
-                { key: 'logs', label: '記録', icon: Calendar },
+                { key: 'logs', label: 'タイムライン', icon: Calendar },
                 { key: 'calendar', label: 'カレンダー', icon: CalendarDays },
-                { key: 'places', label: '場所', icon: Clock },
+                { key: 'wishlist', label: '行きたい', icon: Bookmark },
                 { key: 'map', label: 'マップ', icon: MapIcon }
               ].map(({ key, label, icon: Icon }) => (
                 <button
@@ -1185,14 +1183,16 @@ function OdekakeLogMain() {
               <Key className="w-[23px] h-[23px]" />
             </button>
 
-            {/* 新規登録ボタン */}
+            {/* 新規登録ボタン：モバイルは下部中央のFABに一本化するため、
+                ヘッダー側は非表示にしてスッキリさせる。デスクトップは
+                下部ナビ（FAB）がないため、引き続きここに残す。 */}
             <button
               onClick={() => {
                 setEditingVisit(null);
                 setEditingPlace(null);
                 setIsRecordModalOpen(true);
               }}
-              className="flex items-center gap-1 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm transition-all active:scale-95"
+              className="hidden lg:flex items-center gap-1 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm transition-all active:scale-95"
             >
               <Plus className="w-[20px] h-[20px] stroke-[2.5]" />
               <span>記録する</span>
@@ -1219,12 +1219,12 @@ function OdekakeLogMain() {
         {/* メインエリア */}
         <main className="flex-1 overflow-y-auto px-4 lg:px-8 py-3 lg:py-5">
 
-          {/* 検索・絞り込み（記録・場所タブ）：カテゴリーは縦2段にせず、
-              ネイティブアプリのような1行横スクロールのカルーセルにする
-              （スクロールバーは.no-scrollbarで非表示）。下に続く表示切り替え
-              （月別/旅行別/エリア別、訪問済み/行きたい）とは、余白＋薄い
+          {/* 検索・絞り込み（タイムライン・行きたいタブ）：カテゴリーは縦2段
+              にせず、ネイティブアプリのような1行横スクロールのカルーセルに
+              する（スクロールバーは.no-scrollbarで非表示）。下に続く表示
+              切り替え（月別/旅行別/エリア別/場所別）とは、余白＋薄い
               区切り線で別グループだと分かるようにする。 */}
-          {(activeTab === 'logs' || activeTab === 'places') && (
+          {(activeTab === 'logs' || activeTab === 'wishlist') && (
             <div className="mb-4 space-y-2 lg:max-w-md">
               <div className="relative">
                 <Search className="w-[21px] h-[21px] absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
@@ -1306,6 +1306,15 @@ function OdekakeLogMain() {
                 >
                   <MapPinned className="w-4 h-4" />
                   <span>エリア別</span>
+                </button>
+                <button
+                  onClick={() => setLogsGroupBy('places')}
+                  className={`flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full font-bold transition-colors ${
+                    logsGroupBy === 'places' ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500'
+                  }`}
+                >
+                  <Compass className="w-4 h-4" />
+                  <span>場所別</span>
                 </button>
               </div>
 
@@ -1403,64 +1412,9 @@ function OdekakeLogMain() {
                   ))
                 )
               )}
-            </div>
-          )}
 
-          {/* TAB: カレンダー（月間カレンダーから日付ごとに振り返る） */}
-          {activeTab === 'calendar' && (
-            <CalendarViewComponent
-              calendarMonth={calendarMonth}
-              onMonthChange={setCalendarMonth}
-              visitsByDate={visitsByDate}
-              selectedDate={calendarSelectedDate}
-              onSelectDate={setCalendarSelectedDate}
-              onOpenPlace={(place) => setSelectedPlaceDetail(place)}
-              onAddForDate={(dateStr) => {
-                setPrefillDateForNewVisit(dateStr);
-                setEditingVisit(null);
-                setEditingPlace(null);
-                setIsRecordModalOpen(true);
-              }}
-            />
-          )}
-
-          {/* TAB 2: 場所（訪問済み／行きたいリストの切り替え） */}
-          {activeTab === 'places' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-1 bg-neutral-100 rounded-full p-1 text-xs">
-                  <button
-                    onClick={() => setPlacesSubView('visited')}
-                    className={`flex items-center gap-1 px-3 py-1 rounded-full font-bold transition-colors ${
-                      placesSubView === 'visited' ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500'
-                    }`}
-                  >
-                    <Compass className="w-4 h-4" />
-                    <span>訪問済み ({placesGroupedByArea.reduce((n, g) => n + g.items.length, 0)})</span>
-                  </button>
-                  <button
-                    onClick={() => setPlacesSubView('wishlist')}
-                    className={`flex items-center gap-1 px-3 py-1 rounded-full font-bold transition-colors ${
-                      placesSubView === 'wishlist' ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500'
-                    }`}
-                  >
-                    <Bookmark className="w-4 h-4" />
-                    <span>行きたい ({wishlist.length})</span>
-                  </button>
-                </div>
-
-                {placesSubView === 'wishlist' && (
-                  <button
-                    onClick={() => setIsWishlistModalOpen(true)}
-                    className="flex items-center gap-1 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm transition-all active:scale-95"
-                  >
-                    <Plus className="w-[18px] h-[18px] stroke-[2.5]" />
-                    <span>行きたい場所を追加</span>
-                  </button>
-                )}
-              </div>
-
-              {placesSubView === 'visited' ? (
+              {/* 場所別表示：訪問済みの場所を一意にまとめ、平均評価・訪問回数などを確認する */}
+              {logsGroupBy === 'places' && (
                 placesGroupedByArea.length === 0 ? (
                   <div className="py-16 text-center text-neutral-400 text-xs">
                     登録されている場所がありません。
@@ -1508,7 +1462,6 @@ function OdekakeLogMain() {
                               </div>
                             </div>
 
-                            {/* 集計サマリー（詳細な訪問履歴は「記録」タブかカードをタップして確認） */}
                             <div className="mt-3.5 flex items-center justify-between text-xs bg-neutral-50 p-2.5 rounded-xl border border-neutral-150">
                               <span className="font-medium text-neutral-600 flex items-center gap-1">
                                 <Clock className="w-[18px] h-[18px] text-sky-500" />
@@ -1526,7 +1479,6 @@ function OdekakeLogMain() {
                               <span>平均評価 {place.avgRating.toFixed(1)}</span>
                             </div>
 
-                            {/* アクションバー：主要な操作だけに絞る（削除は詳細画面から） */}
                             <div
                               className="mt-3.5 pt-3 border-t border-neutral-100 flex items-center gap-2"
                               onClick={(e) => e.stopPropagation()}
@@ -1549,16 +1501,6 @@ function OdekakeLogMain() {
                               >
                                 <MapIcon className="w-[18px] h-[18px]" />
                               </button>
-                              <button
-                                onClick={() => {
-                                  setEditingVisit(null);
-                                  setEditingPlace(place);
-                                  setIsRecordModalOpen(true);
-                                }}
-                                className="ml-auto bg-sky-50 text-sky-700 border border-sky-200 px-3 py-1 rounded-lg text-[11px] font-bold hover:bg-sky-100 flex-shrink-0"
-                              >
-                                ＋ 再訪を記録
-                              </button>
                             </div>
                           </div>
                         );
@@ -1567,8 +1509,38 @@ function OdekakeLogMain() {
                     </div>
                   ))
                 )
-              ) : (
-                <>
+              )}
+            </div>
+          )}
+
+          {/* TAB: カレンダー（月間カレンダーから日付ごとに振り返る） */}
+          {activeTab === 'calendar' && (
+            <CalendarViewComponent
+              calendarMonth={calendarMonth}
+              onMonthChange={setCalendarMonth}
+              visitsByDate={visitsByDate}
+              selectedDate={calendarSelectedDate}
+              onSelectDate={setCalendarSelectedDate}
+              onOpenPlace={(place) => setSelectedPlaceDetail(place)}
+              onAddForDate={(dateStr) => {
+                setPrefillDateForNewVisit(dateStr);
+                setEditingVisit(null);
+                setEditingPlace(null);
+                setIsRecordModalOpen(true);
+              }}
+            />
+          )}
+
+          {/* TAB: 行きたい（独立タブ。追加は下部中央のFABから行うため、
+              このタブ自体には追加ボタンを置かない） */}
+          {activeTab === 'wishlist' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-1.5 text-xs font-black text-neutral-700 px-1">
+                <Bookmark className="w-4 h-4 text-sky-500" />
+                <span>行きたい場所 ({wishlist.length})</span>
+              </div>
+
+              <>
                 {/* 近くの保存済みスポット（現在地から距離順に確認） */}
                 <div className="bg-sky-50/70 border border-sky-200 rounded-2xl p-3.5 space-y-2.5">
                   {!userLocation ? (
@@ -1775,7 +1747,6 @@ function OdekakeLogMain() {
                   ))
                 )}
                 </>
-              )}
             </div>
           )}
 
@@ -1813,8 +1784,10 @@ function OdekakeLogMain() {
 
         </main>
 
-        {/* 下部ナビゲーション（記録 / カレンダー / 場所 / マップ） */}
-        <nav className="lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-neutral-200 px-2 py-2 flex items-center justify-between z-40 shadow-lg">
+        {/* 下部ナビゲーション（タイムライン / カレンダー / ＋ / 行きたい / マップ）。
+            中央の＋はタブではなく常設のFAB（フローティングアクションボタン）
+            で、バーから上に少しはみ出す形で最も目立たせる。 */}
+        <nav className="lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-neutral-200 px-2 pt-2 pb-2 flex items-center justify-between z-40 shadow-lg">
           <button
             onClick={() => setActiveTab('logs')}
             className={`flex-1 flex flex-col items-center gap-1 transition-colors ${
@@ -1822,7 +1795,7 @@ function OdekakeLogMain() {
             }`}
           >
             <Calendar className="w-[20px] h-[20px]" />
-            <span className="text-[10px]">記録</span>
+            <span className="text-[10px]">タイムライン</span>
           </button>
 
           <button
@@ -1835,14 +1808,29 @@ function OdekakeLogMain() {
             <span className="text-[10px]">カレンダー</span>
           </button>
 
+          {/* 中央のFAB：新規記録（行った／行きたい） */}
+          <div className="flex-1 flex justify-center">
+            <button
+              onClick={() => {
+                setEditingVisit(null);
+                setEditingPlace(null);
+                setIsRecordModalOpen(true);
+              }}
+              className="w-14 h-14 -mt-7 rounded-full bg-sky-500 hover:bg-sky-600 text-white shadow-lg ring-[5px] ring-white flex items-center justify-center active:scale-95 transition-all"
+              title="新規記録を追加"
+            >
+              <Plus className="w-7 h-7 stroke-[2.5]" />
+            </button>
+          </div>
+
           <button
-            onClick={() => setActiveTab('places')}
+            onClick={() => setActiveTab('wishlist')}
             className={`flex-1 flex flex-col items-center gap-1 transition-colors ${
-              activeTab === 'places' ? 'text-sky-600 font-bold' : 'text-neutral-400 hover:text-neutral-600 font-medium'
+              activeTab === 'wishlist' ? 'text-sky-600 font-bold' : 'text-neutral-400 hover:text-neutral-600 font-medium'
             }`}
           >
-            <Clock className="w-[20px] h-[20px]" />
-            <span className="text-[10px]">場所</span>
+            <Bookmark className="w-[20px] h-[20px]" />
+            <span className="text-[10px]">行きたい</span>
           </button>
 
           <button
@@ -1875,7 +1863,24 @@ function OdekakeLogMain() {
             isMapsLoaded={isMapsLoaded}
             onOpenApiKeyModal={() => setShowApiKeyModal(true)}
             onToast={showToast}
-            onSave={({ placeData, visitData }) => {
+            onSave={({ mode, placeData, visitData, wishData }) => {
+              if (mode === 'wishlist') {
+                // 同じ場所（googlePlaceId）が既にリストにあれば重複登録しない
+                const existingIndex = wishlist.findIndex(w => w.googlePlaceId === wishData.googlePlaceId);
+                if (existingIndex >= 0) {
+                  showToast('この場所は既に行きたいリストに入っています。');
+                } else {
+                  saveWishlist([...wishlist, wishData]);
+                  showToast('行きたいリストに追加しました。');
+                }
+                setIsRecordModalOpen(false);
+                setEditingVisit(null);
+                setEditingPlace(null);
+                setConvertingWishlistId(null);
+                setPrefillDateForNewVisit(null);
+                return;
+              }
+
               let targetPlaceId = placeData.id;
               let updatedPlaces = [...places];
 
@@ -1921,28 +1926,6 @@ function OdekakeLogMain() {
               setEditingPlace(null);
               setConvertingWishlistId(null);
               setPrefillDateForNewVisit(null);
-            }}
-          />
-        )}
-
-        {/* 行きたい場所を追加するモーダル */}
-        {isWishlistModalOpen && (
-          <WishlistFormModal
-            onClose={() => setIsWishlistModalOpen(false)}
-            isMapsLoaded={isMapsLoaded}
-            onOpenApiKeyModal={() => setShowApiKeyModal(true)}
-            onToast={showToast}
-            onSave={(wishData) => {
-              // 同じ場所（googlePlaceId）が既にリストにあれば重複登録しない
-              const existingIndex = wishlist.findIndex(w => w.googlePlaceId === wishData.googlePlaceId);
-              if (existingIndex >= 0) {
-                showToast('この場所は既に行きたいリストに入っています。');
-                setIsWishlistModalOpen(false);
-                return;
-              }
-              saveWishlist([...wishlist, wishData]);
-              setIsWishlistModalOpen(false);
-              showToast('行きたいリストに追加しました。');
             }}
           />
         )}
@@ -2522,9 +2505,15 @@ function PlaceSearchField({
 // 記録モーダル（Places API 検索 ＋ フォールバック対応）
 // ==========================================
 function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialDate, places, trips = [], isMapsLoaded, onOpenApiKeyModal, onToast, onSave }) {
+  // 「行った」／「行きたい」の切り替え。既に場所が確定している文脈
+  // （編集・再訪・行きたいからの変換）では常に「行った」として扱い、
+  // トグル自体も表示しない（真っさらな新規登録＝FABからの起動時のみ選べる）。
+  const canToggleMode = !initialVisit && !initialPlace;
+  const [mode, setMode] = useState('visited'); // 'visited' | 'wishlist'
   const [date, setDate] = useState(initialVisit?.date || initialDate || getTodayDateString());
   const [rating, setRating] = useState(initialVisit?.rating || 5);
   const [note, setNote] = useState(initialVisit?.note || '');
+  const [referenceUrl, setReferenceUrl] = useState('');
   const [category, setCategory] = useState(initialPlace?.category || 'food');
   const [selectedPlace, setSelectedPlace] = useState(initialPlace || null);
   const [photos, setPhotos] = useState(initialVisit?.photos || []);
@@ -2578,7 +2567,24 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
       return;
     }
 
+    if (mode === 'wishlist') {
+      onSave({
+        mode: 'wishlist',
+        wishData: {
+          ...selectedPlace,
+          category,
+          memo: note.trim(),
+          referenceUrl: referenceUrl.trim(),
+          plannedDate: date || null,
+          photos,
+          addedAt: getTodayDateString()
+        }
+      });
+      return;
+    }
+
     onSave({
+      mode: 'visited',
       placeData: {
         ...selectedPlace,
         category
@@ -2604,7 +2610,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
               <MapPin className="w-[24px] h-[24px]" />
             </div>
             <h3 className="text-[17px] font-bold text-neutral-900">
-              {initialVisit ? '訪問記録の編集' : '行った場所を記録'}
+              {mode === 'wishlist' ? '行きたい場所を追加' : (initialVisit ? '訪問記録の編集' : '行った場所を記録')}
             </h3>
           </div>
           <button onClick={onClose} className="p-1.5 -mr-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg">
@@ -2616,6 +2622,36 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
         <div className="flex justify-center flex-shrink-0">
           <div className="w-[88%] border-t border-neutral-150" />
         </div>
+
+        {/* 行った／行きたい 切り替え（セグメントコントロール）。
+            場所が既に確定している文脈（編集・再訪・変換）では出し分けの
+            意味がないため非表示にし、常に「行った」として扱う。 */}
+        {canToggleMode && (
+          <div className="px-[26px] pt-3 flex-shrink-0">
+            <div className="flex items-center gap-1 bg-neutral-100 rounded-full p-1 text-xs">
+              <button
+                type="button"
+                onClick={() => setMode('visited')}
+                className={`flex-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded-full font-bold transition-colors ${
+                  mode === 'visited' ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500'
+                }`}
+              >
+                <Compass className="w-4 h-4" />
+                <span>行った</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('wishlist')}
+                className={`flex-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded-full font-bold transition-colors ${
+                  mode === 'wishlist' ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500'
+                }`}
+              >
+                <Bookmark className="w-4 h-4" />
+                <span>行きたい</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
         <div className="px-[26px] pt-2 pb-[15px] overflow-y-auto space-y-[13px] flex-1 min-h-0">
@@ -2633,23 +2669,24 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
             onUnlock={() => setIsPlaceLocked(false)}
           />
 
-          {/* 訪問日 */}
+          {/* 訪問日／予定日：どちらのモードでも表示する共通項目 */}
           <div>
             <label className="block text-[13px] font-bold text-neutral-700 mb-[5px] flex items-center gap-1">
               <Calendar className="w-[18px] h-[18px] text-sky-500" />
-              <span>訪問日</span>
+              <span>{mode === 'wishlist' ? '予定日（任意）' : '訪問日'}</span>
             </label>
             <input
               type="date"
-              required
+              required={mode !== 'wishlist'}
               value={date}
               onChange={(e) => setDate(e.target.value)}
               className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm px-3 py-[7px] text-[12.5px] text-neutral-800 focus:outline-none focus:border-sky-400"
             />
           </div>
 
-          {/* カテゴリー＆評価 */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* カテゴリー＆評価：行きたいモードでは評価の代わりに空セルを詰めず、
+              カテゴリーだけ単独幅で表示する */}
+          <div className={mode === 'wishlist' ? '' : 'grid grid-cols-2 gap-3'}>
             <div>
               <label className="block text-[13px] font-bold text-neutral-700 mb-[5px]">カテゴリー</label>
               <div className="relative">
@@ -2666,35 +2703,54 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
               </div>
             </div>
 
-            <div>
-              <label className="block text-[13px] font-bold text-neutral-700 mb-[5px]">評価</label>
-              <div className="relative">
-                <select
-                  value={rating}
-                  onChange={(e) => setRating(Number(e.target.value))}
-                  className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm pl-2.5 pr-7 py-[7px] text-[12.5px] text-neutral-800 focus:outline-none"
-                >
-                  {/* ネイティブ<select>の<option>はJSXアイコンを描画できないため、
-                      絵文字ではなく記号としてのテキスト星（★）を使う */}
-                  <option value={5}>★★★★★ (5点)</option>
-                  <option value={4}>★★★★ (4点)</option>
-                  <option value={3}>★★★ (3点)</option>
-                  <option value={2}>★★ (2点)</option>
-                  <option value={1}>★ (1点)</option>
-                </select>
-                <ChevronDown className="w-[18px] h-[18px] text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            {mode !== 'wishlist' && (
+              <div>
+                <label className="block text-[13px] font-bold text-neutral-700 mb-[5px]">評価</label>
+                <div className="relative">
+                  <select
+                    value={rating}
+                    onChange={(e) => setRating(Number(e.target.value))}
+                    className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm pl-2.5 pr-7 py-[7px] text-[12.5px] text-neutral-800 focus:outline-none"
+                  >
+                    {/* ネイティブ<select>の<option>はJSXアイコンを描画できないため、
+                        絵文字ではなく記号としてのテキスト星（★）を使う */}
+                    <option value={5}>★★★★★ (5点)</option>
+                    <option value={4}>★★★★ (4点)</option>
+                    <option value={3}>★★★ (3点)</option>
+                    <option value={2}>★★ (2点)</option>
+                    <option value={1}>★ (1点)</option>
+                  </select>
+                  <ChevronDown className="w-[18px] h-[18px] text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
-          {/* メモ */}
+          {/* 行きたいモードのみ：参考リンク（Instagram・食べログ等） */}
+          {mode === 'wishlist' && (
+            <div>
+              <label className="block text-[13px] font-bold text-neutral-700 mb-[5px]">
+                参考リンク（任意）
+              </label>
+              <input
+                type="url"
+                placeholder="https://www.instagram.com/... など"
+                value={referenceUrl}
+                onChange={(e) => setReferenceUrl(e.target.value)}
+                className="w-full bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm px-3 py-[7px] text-[12.5px] text-neutral-800 focus:outline-none focus:border-sky-400"
+              />
+            </div>
+          )}
+
+          {/* メモ：共通項目（行ったモードでは訪問メモ、行きたいモードでは
+              気になる理由などのメモとして共用） */}
           <div>
             <label className="block text-[13px] font-bold text-neutral-700 mb-[5px]">
-              訪問時のメモ・感想
+              {mode === 'wishlist' ? 'メモ（気になる理由など）' : '訪問時のメモ・感想'}
             </label>
             <textarea
               rows={2}
-              placeholder="おすすめの料理、店内の雰囲気、混雑具合など..."
+              placeholder={mode === 'wishlist' ? '友達がおすすめしてた、期間限定メニューが気になる、など...' : 'おすすめの料理、店内の雰囲気、混雑具合など...'}
               value={note}
               onChange={(e) => setNote(e.target.value)}
               className="w-full bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm px-3 py-[7px] text-[12.5px] text-neutral-800 focus:outline-none focus:border-sky-400"
@@ -2747,8 +2803,8 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
             />
           </div>
 
-          {/* 旅行への紐付け（任意） */}
-          {trips.length > 0 && (
+          {/* 旅行への紐付け（任意・行ったモードのみ） */}
+          {mode !== 'wishlist' && trips.length > 0 && (
             <div>
               <label className="block text-[13px] font-bold text-neutral-700 mb-[5px]">旅行（任意）</label>
               <div className="relative">
@@ -2776,7 +2832,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
             type="submit"
             className="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-[15px] rounded-2xl shadow-md transition-all active:scale-[0.98] text-[15px]"
           >
-            {initialVisit ? '記録を更新する' : 'この内容で記録する'}
+            {mode === 'wishlist' ? '行きたいリストに追加' : (initialVisit ? '記録を更新する' : 'この内容で記録する')}
           </button>
         </div>
         </form>
@@ -2785,99 +2841,8 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
   );
 }
 
-// ==========================================
-// 行きたい場所モーダル（訪問前のウィッシュリスト登録）
-// ==========================================
-function WishlistFormModal({ onClose, isMapsLoaded, onOpenApiKeyModal, onToast, onSave }) {
-  const [category, setCategory] = useState('food');
-  const [memo, setMemo] = useState('');
-  const [selectedPlace, setSelectedPlace] = useState(null);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!selectedPlace) {
-      onToast?.('場所・お店を検索して選択してください。');
-      return;
-    }
-
-    onSave({
-      ...selectedPlace,
-      category,
-      memo: memo.trim(),
-      addedAt: getTodayDateString()
-    });
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-neutral-150 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
-              <Bookmark className="w-[21px] h-[21px]" />
-            </div>
-            <h3 className="text-sm font-bold text-neutral-900">行きたい場所を追加</h3>
-          </div>
-          <button onClick={onClose} className="p-1.5 -mr-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg">
-            <X className="w-[25px] h-[25px]" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-4 flex-1">
-          <PlaceSearchField
-            isMapsLoaded={isMapsLoaded}
-            onOpenApiKeyModal={onOpenApiKeyModal}
-            category={category}
-            selectedPlace={selectedPlace}
-            onSelectedPlaceChange={(place) => {
-              setSelectedPlace(place);
-              setCategory(place.category);
-            }}
-            isLocked={false}
-          />
-
-          <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1">カテゴリー</label>
-            <div className="relative">
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm pl-2.5 pr-7 py-2 text-xs text-neutral-800 focus:outline-none"
-              >
-                {Object.entries(CATEGORIES).map(([k, cat]) => (
-                  <option key={k} value={k}>{cat.label}</option>
-                ))}
-              </select>
-              <ChevronDown className="w-[18px] h-[18px] text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1">
-              メモ（気になる理由・行きたい時期など）
-            </label>
-            <textarea
-              rows={3}
-              placeholder="友達がおすすめしてた、期間限定メニューが気になる、など..."
-              value={memo}
-              onChange={(e) => setMemo(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
-            />
-          </div>
-
-          <div className="pt-2">
-            <button
-              type="submit"
-              className="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 rounded-2xl shadow-md transition-all active:scale-[0.98] text-xs"
-            >
-              行きたいリストに追加する
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
+// 行きたい場所の登録は RecordFormModal の「行った／行きたい」トグルに
+// 統合されたため、専用モーダルはここでは定義しない。
 
 // ==========================================
 // 星評価表示（絵文字ではなくLucideのStarアイコンで統一）
