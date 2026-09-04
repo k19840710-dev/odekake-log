@@ -28,7 +28,10 @@ import {
   Compass,
   RefreshCw,
   Download,
-  Upload
+  Upload,
+  Bookmark,
+  Plane,
+  Sparkles
 } from 'lucide-react';
 
 // ==========================================
@@ -248,9 +251,46 @@ const INITIAL_VISITS = [
   }
 ];
 
+// ==========================================
+// 初期サンプルデータ（行きたい場所リスト）
+// ==========================================
+const INITIAL_WISHLIST = [
+  {
+    id: 'wish-fuunji',
+    googlePlaceId: 'wish-fuunji-seed',
+    name: '風雲児 (新宿つけ麺)',
+    address: '東京都新宿区西新宿1丁目6-2',
+    lat: 35.6909,
+    lng: 139.6997,
+    googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=%E9%A2%A8%E9%9B%B2%E5%85%90+%E6%96%B0%E5%AE%BF',
+    category: 'food',
+    country: '日本',
+    administrativeArea: '東京都',
+    locality: '新宿区',
+    memo: '行列必至のつけ麺の名店。開店直後を狙いたい。',
+    addedAt: '2026-08-30'
+  },
+  {
+    id: 'wish-jiufen',
+    googlePlaceId: 'wish-jiufen-seed',
+    name: '九份老街',
+    address: '台湾新北市瑞芳区九份',
+    lat: 25.1097,
+    lng: 121.8446,
+    googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=%E4%B9%9D%E4%BB%BD%E8%80%81%E8%A1%97',
+    category: 'sightseeing',
+    country: '台湾',
+    administrativeArea: '新北市',
+    locality: '瑞芳区',
+    memo: '次に台湾に行ったら夕方〜夜の景色を見に行きたい。',
+    addedAt: '2026-08-30'
+  }
+];
+
 // ストレージキー
 const STORAGE_PLACES_KEY = 'odekake_places_v3';
 const STORAGE_VISITS_KEY = 'odekake_visits_v3';
+const STORAGE_WISHLIST_KEY = 'odekake_wishlist_v3';
 const STORAGE_API_KEY = 'odekake_gmaps_api_key_v3';
 
 // ==========================================
@@ -325,15 +365,22 @@ function OdekakeLogMain() {
   // データステート
   const [places, setPlaces] = useState(INITIAL_PLACES);
   const [visits, setVisits] = useState(INITIAL_VISITS);
+  const [wishlist, setWishlist] = useState(INITIAL_WISHLIST);
 
   // フィルター・検索
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
+  // 「場所」タブ内の切り替え（訪問済み／行きたい）と「記録」タブの並び替え軸
+  const [placesSubView, setPlacesSubView] = useState('visited'); // 'visited' | 'wishlist'
+  const [logsGroupBy, setLogsGroupBy] = useState('month'); // 'month' | 'trip'
+
   // モーダル・ダイアログ
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [editingVisit, setEditingVisit] = useState(null);
   const [editingPlace, setEditingPlace] = useState(null);
+  const [convertingWishlistId, setConvertingWishlistId] = useState(null);
+  const [isWishlistModalOpen, setIsWishlistModalOpen] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [selectedPlaceDetail, setSelectedPlaceDetail] = useState(null);
   const [targetPlaceForMap, setTargetPlaceForMap] = useState(null);
@@ -360,6 +407,7 @@ function OdekakeLogMain() {
     try {
       const savedPlaces = localStorage.getItem(STORAGE_PLACES_KEY);
       const savedVisits = localStorage.getItem(STORAGE_VISITS_KEY);
+      const savedWishlist = localStorage.getItem(STORAGE_WISHLIST_KEY);
       if (savedPlaces && savedVisits) {
         const parsedPlaces = JSON.parse(savedPlaces);
         const parsedVisits = JSON.parse(savedVisits);
@@ -372,6 +420,14 @@ function OdekakeLogMain() {
       } else {
         localStorage.setItem(STORAGE_PLACES_KEY, JSON.stringify(INITIAL_PLACES));
         localStorage.setItem(STORAGE_VISITS_KEY, JSON.stringify(INITIAL_VISITS));
+      }
+      if (savedWishlist) {
+        const parsedWishlist = JSON.parse(savedWishlist);
+        if (Array.isArray(parsedWishlist)) {
+          setWishlist(parsedWishlist);
+        }
+      } else {
+        localStorage.setItem(STORAGE_WISHLIST_KEY, JSON.stringify(INITIAL_WISHLIST));
       }
     } catch (e) {
       console.warn('LocalStorage error, using initial data:', e);
@@ -393,6 +449,15 @@ function OdekakeLogMain() {
       localStorage.setItem(STORAGE_VISITS_KEY, JSON.stringify(newVisits));
     } catch (e) {
       console.warn('Failed to save visits:', e);
+    }
+  };
+
+  const saveWishlist = (newWishlist) => {
+    setWishlist(newWishlist);
+    try {
+      localStorage.setItem(STORAGE_WISHLIST_KEY, JSON.stringify(newWishlist));
+    } catch (e) {
+      console.warn('Failed to save wishlist:', e);
     }
   };
 
@@ -470,6 +535,9 @@ function OdekakeLogMain() {
       p.visits.sort((a, b) => new Date(b.date) - new Date(a.date));
       p.visitCount = p.visits.length;
       p.lastVisited = p.visits.length > 0 ? p.visits[0].date : '';
+      p.avgRating = p.visits.length > 0
+        ? p.visits.reduce((sum, v) => sum + (v.rating || 0), 0) / p.visits.length
+        : 0;
       return p;
     });
   }, [places, visits]);
@@ -513,12 +581,74 @@ function OdekakeLogMain() {
       groups[key].push(item);
     });
 
-    return Object.entries(groups).map(([month, items]) => ({ month, items }));
+    return Object.entries(groups).map(([label, items]) => ({ label, items }));
   }, [visits, places, searchQuery, selectedCategory]);
 
-  // 5. エリア別まとめ（場所タブ）
+  // 4b. 旅行（トリップ）単位でまとめる（記録タブ・旅行別表示）
+  // 同じ国が続く範囲で、日付の間隔が一定以内ならひとつの旅行として束ねる
+  const groupedVisitsByTrip = useMemo(() => {
+    let list = visits.map(v => {
+      const place = places.find(p => p.id === v.placeId);
+      return {
+        ...v,
+        place: place || { name: '未登録の場所', address: '', category: 'other', lat: 0, lng: 0, country: '' }
+      };
+    });
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(item =>
+        item.place.name.toLowerCase().includes(q) ||
+        (item.place.address && item.place.address.toLowerCase().includes(q)) ||
+        (item.note && item.note.toLowerCase().includes(q))
+      );
+    }
+    if (selectedCategory !== 'all') {
+      list = list.filter(item => item.place.category === selectedCategory);
+    }
+
+    // 旅行判定のため、まず日付の古い順に並べてグループを作る
+    const ascending = [...list].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const TRIP_GAP_DAYS = 5;
+    const trips = [];
+    let current = null;
+
+    ascending.forEach(item => {
+      const country = item.place.country || 'その他';
+      const itemDate = parseLocalDate(item.date);
+
+      const gapDays = current
+        ? Math.abs((itemDate.getTime() - parseLocalDate(current.lastDate).getTime()) / (1000 * 60 * 60 * 24))
+        : Infinity;
+
+      if (!current || current.country !== country || gapDays > TRIP_GAP_DAYS) {
+        current = { country, firstDate: item.date, lastDate: item.date, items: [] };
+        trips.push(current);
+      }
+      current.items.push(item);
+      if (item.date > current.lastDate) current.lastDate = item.date;
+      if (item.date < current.firstDate) current.firstDate = item.date;
+    });
+
+    // 新しい旅行が上に来るよう、旅行の並び・各旅行内の訪問の並びを新しい順に
+    return trips
+      .slice()
+      .reverse()
+      .map(trip => {
+        const items = [...trip.items].sort((a, b) => new Date(b.date) - new Date(a.date));
+        const period = trip.firstDate === trip.lastDate
+          ? formatDateWithWeekday(trip.firstDate)
+          : `${formatDateWithWeekday(trip.firstDate)} 〜 ${formatDateWithWeekday(trip.lastDate)}`;
+        return {
+          label: `${period}・${trip.country}`,
+          items
+        };
+      });
+  }, [visits, places, searchQuery, selectedCategory]);
+
+  // 5. エリア別まとめ（場所タブ・訪問済み表示）
   const placesGroupedByArea = useMemo(() => {
-    let list = enrichedPlaces;
+    let list = enrichedPlaces.filter(p => p.visitCount > 0);
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -548,6 +678,35 @@ function OdekakeLogMain() {
 
     return Object.entries(areaGroups).map(([area, items]) => ({ area, items }));
   }, [enrichedPlaces, searchQuery, selectedCategory]);
+
+  // 5b. エリア別まとめ（場所タブ・行きたいリスト表示）
+  const wishlistGroupedByArea = useMemo(() => {
+    let list = wishlist;
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        (p.address && p.address.toLowerCase().includes(q)) ||
+        (p.memo && p.memo.toLowerCase().includes(q))
+      );
+    }
+
+    if (selectedCategory !== 'all') {
+      list = list.filter(p => p.category === selectedCategory);
+    }
+
+    list = [...list].sort((a, b) => new Date(b.addedAt || 0) - new Date(a.addedAt || 0));
+
+    const areaGroups = {};
+    list.forEach(p => {
+      const areaKey = p.administrativeArea ? `${p.country || ''} ${p.administrativeArea}`.trim() : (p.country || 'その他の地域');
+      if (!areaGroups[areaKey]) areaGroups[areaKey] = [];
+      areaGroups[areaKey].push(p);
+    });
+
+    return Object.entries(areaGroups).map(([area, items]) => ({ area, items }));
+  }, [wishlist, searchQuery, selectedCategory]);
 
   // 6. 削除ハンドラー
   const handleDeleteVisit = (visitId) => {
@@ -580,13 +739,44 @@ function OdekakeLogMain() {
     setActiveTab('map');
   };
 
+  // 行きたい場所リストの削除・「行った！」への変換
+  const handleDeleteWishlistItem = (wishId) => {
+    setConfirmDialog({
+      title: '行きたい場所の削除',
+      message: 'この行きたい場所をリストから削除してもよろしいですか？',
+      onConfirm: () => {
+        saveWishlist(wishlist.filter(w => w.id !== wishId));
+      }
+    });
+  };
+
+  const handleConvertWishlistToVisit = (wishItem) => {
+    setConvertingWishlistId(wishItem.id);
+    setEditingVisit(null);
+    setEditingPlace({
+      id: generateUUID(),
+      googlePlaceId: wishItem.googlePlaceId,
+      name: wishItem.name,
+      address: wishItem.address,
+      lat: wishItem.lat,
+      lng: wishItem.lng,
+      googleMapsUrl: wishItem.googleMapsUrl,
+      category: wishItem.category,
+      country: wishItem.country,
+      administrativeArea: wishItem.administrativeArea,
+      locality: wishItem.locality
+    });
+    setIsRecordModalOpen(true);
+  };
+
   // 7. データのバックアップ（エクスポート／インポート）
   const handleExportData = () => {
     try {
       const payload = {
         exportedAt: new Date().toISOString(),
         places,
-        visits
+        visits,
+        wishlist
       };
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -615,6 +805,7 @@ function OdekakeLogMain() {
         const parsed = JSON.parse(reader.result);
         const importedPlaces = Array.isArray(parsed?.places) ? parsed.places : null;
         const importedVisits = Array.isArray(parsed?.visits) ? parsed.visits : null;
+        const importedWishlist = Array.isArray(parsed?.wishlist) ? parsed.wishlist : [];
 
         if (!importedPlaces || !importedVisits) {
           showToast('バックアップファイルの形式が正しくありません。');
@@ -623,10 +814,11 @@ function OdekakeLogMain() {
 
         setConfirmDialog({
           title: 'データの復元',
-          message: `現在のデータ（場所${places.length}件・記録${visits.length}件）を、バックアップの内容（場所${importedPlaces.length}件・記録${importedVisits.length}件）で置き換えます。よろしいですか？`,
+          message: `現在のデータ（場所${places.length}件・記録${visits.length}件・行きたい場所${wishlist.length}件）を、バックアップの内容（場所${importedPlaces.length}件・記録${importedVisits.length}件・行きたい場所${importedWishlist.length}件）で置き換えます。よろしいですか？`,
           onConfirm: () => {
             savePlaces(importedPlaces);
             saveVisits(importedVisits);
+            saveWishlist(importedWishlist);
             showToast('データを復元しました。');
           }
         });
@@ -774,19 +966,40 @@ function OdekakeLogMain() {
             </div>
           )}
 
-          {/* TAB 1: 記録（日付順・年月別まとめ） */}
+          {/* TAB 1: 記録（日付順・年月別 or 旅行別まとめ） */}
           {activeTab === 'logs' && (
             <div className="space-y-4">
-              {groupedVisits.length === 0 ? (
+              <div className="flex items-center gap-1 bg-neutral-100 rounded-full p-1 w-fit text-xs">
+                <button
+                  onClick={() => setLogsGroupBy('month')}
+                  className={`flex items-center gap-1 px-3 py-1 rounded-full font-bold transition-colors ${
+                    logsGroupBy === 'month' ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500'
+                  }`}
+                >
+                  <Calendar className="w-3 h-3" />
+                  <span>月別</span>
+                </button>
+                <button
+                  onClick={() => setLogsGroupBy('trip')}
+                  className={`flex items-center gap-1 px-3 py-1 rounded-full font-bold transition-colors ${
+                    logsGroupBy === 'trip' ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500'
+                  }`}
+                >
+                  <Plane className="w-3 h-3" />
+                  <span>旅行別</span>
+                </button>
+              </div>
+
+              {(logsGroupBy === 'trip' ? groupedVisitsByTrip : groupedVisits).length === 0 ? (
                 <div className="py-16 text-center text-neutral-400 text-xs">
                   記録がありません。「記録する」ボタンから訪れた場所を追加してください。
                 </div>
               ) : (
-                groupedVisits.map(({ month, items }) => (
-                  <div key={month} className="space-y-2.5">
+                (logsGroupBy === 'trip' ? groupedVisitsByTrip : groupedVisits).map(({ label, items }) => (
+                  <div key={label} className="space-y-2.5">
                     <div className="sticky top-[53px] z-10 bg-[#fafafa]/90 backdrop-blur-sm py-1 flex items-center justify-between">
                       <span className="text-xs font-black text-neutral-700 bg-neutral-200/80 px-2.5 py-0.5 rounded-md">
-                        {month}
+                        {label}
                       </span>
                       <span className="text-[11px] text-neutral-400 font-medium">
                         {items.length} 件の訪問
@@ -887,143 +1100,246 @@ function OdekakeLogMain() {
             </div>
           )}
 
-          {/* TAB 2: 場所（場所・エリア別、最後に訪れた日） */}
+          {/* TAB 2: 場所（訪問済み／行きたいリストの切り替え） */}
           {activeTab === 'places' && (
             <div className="space-y-4">
-              {placesGroupedByArea.length === 0 ? (
-                <div className="py-16 text-center text-neutral-400 text-xs">
-                  登録されている場所がありません。
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-1 bg-neutral-100 rounded-full p-1 text-xs">
+                  <button
+                    onClick={() => setPlacesSubView('visited')}
+                    className={`flex items-center gap-1 px-3 py-1 rounded-full font-bold transition-colors ${
+                      placesSubView === 'visited' ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500'
+                    }`}
+                  >
+                    <Compass className="w-3 h-3" />
+                    <span>訪問済み ({placesGroupedByArea.reduce((n, g) => n + g.items.length, 0)})</span>
+                  </button>
+                  <button
+                    onClick={() => setPlacesSubView('wishlist')}
+                    className={`flex items-center gap-1 px-3 py-1 rounded-full font-bold transition-colors ${
+                      placesSubView === 'wishlist' ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500'
+                    }`}
+                  >
+                    <Bookmark className="w-3 h-3" />
+                    <span>行きたい ({wishlist.length})</span>
+                  </button>
                 </div>
-              ) : (
-                placesGroupedByArea.map(({ area, items }) => (
-                  <div key={area} className="space-y-2.5">
-                    <div className="flex items-center gap-1.5 text-xs font-black text-neutral-700 px-1">
-                      <Compass className="w-3.5 h-3.5 text-sky-500" />
-                      <span>{area}</span>
-                      <span className="text-neutral-400 font-normal">({items.length}箇所)</span>
-                    </div>
 
-                    <div className="space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0 xl:grid-cols-3">
-                    {items.map((place) => {
-                      const cat = CATEGORIES[place.category] || CATEGORIES.other;
-                      const lastFormatted = place.lastVisited ? formatDateWithWeekday(place.lastVisited) : '未訪問';
-                      const lastRelative = place.lastVisited ? getRelativeDays(place.lastVisited) : '';
+                {placesSubView === 'wishlist' && (
+                  <button
+                    onClick={() => setIsWishlistModalOpen(true)}
+                    className="flex items-center gap-1 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm transition-all active:scale-95"
+                  >
+                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>行きたい場所を追加</span>
+                  </button>
+                )}
+              </div>
 
-                      return (
-                        <div
-                          key={place.id}
-                          className="bg-white rounded-2xl p-4 border border-neutral-200/80 shadow-sm hover:border-neutral-300 transition-all"
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <div className="flex items-center gap-1.5">
-                                <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
-                                  <cat.icon className="w-3 h-3" />
-                                  {cat.label}
-                                </span>
-                                <h3 className="text-sm font-bold text-neutral-900">
-                                  {place.name}
-                                </h3>
-                              </div>
-                              <p className="text-[11px] text-neutral-400 mt-1">
-                                {place.address || '住所未登録'}
-                              </p>
-                            </div>
-
-                            <span className="text-xs font-black text-sky-700 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-100 whitespace-nowrap">
-                              計 {place.visitCount} 回
-                            </span>
-                          </div>
-
-                          {/* 最終訪問日 */}
-                          <div className="mt-2.5 flex items-center justify-between text-xs bg-neutral-50 p-2.5 rounded-xl border border-neutral-150">
-                            <span className="font-medium text-neutral-600 flex items-center gap-1">
-                              <Clock className="w-3.5 h-3.5 text-sky-500" />
-                              最後に訪れた日:
-                            </span>
-                            <div className="text-right">
-                              <span className="font-bold text-neutral-800">{lastFormatted}</span>
-                              {lastRelative && (
-                                <span className="text-[11px] text-neutral-400 ml-1">({lastRelative})</span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* 過去に訪れた全日付リスト */}
-                          {place.visits.length > 0 && (
-                            <div className="mt-2.5">
-                              <div className="text-[10px] font-bold text-neutral-400 mb-1">
-                                過去の訪問履歴 ({place.visits.length}回):
-                              </div>
-                              <div className="space-y-1.5">
-                                {place.visits.map((v) => (
-                                  <div key={v.id} className="text-xs flex items-center justify-between py-1 px-2 bg-neutral-50/60 rounded-lg border border-neutral-100">
-                                    <span className="font-medium text-neutral-700">
-                                      {formatDateWithWeekday(v.date)}
-                                    </span>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-amber-400 text-[10px]">
-                                        {'★'.repeat(v.rating || 5)}
-                                      </span>
-                                      <span className="text-[11px] text-neutral-500 truncate max-w-[120px]">
-                                        {v.note || '-'}
-                                      </span>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* アクションバー */}
-                          <div className="mt-3 pt-2.5 border-t border-neutral-100 flex items-center justify-between text-xs">
-                            <div className="flex items-center gap-2">
-                              {place.googleMapsUrl && (
-                                <a
-                                  href={place.googleMapsUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-neutral-600 hover:text-neutral-900 font-semibold flex items-center gap-1 text-[11px]"
-                                >
-                                  <ExternalLink className="w-3 h-3 text-neutral-400" />
-                                  <span>Googleマップ</span>
-                                </a>
-                              )}
-                              <button
-                                onClick={() => handleJumpToMap(place)}
-                                className="text-sky-600 hover:text-sky-700 font-semibold flex items-center gap-1 text-[11px]"
-                              >
-                                <MapIcon className="w-3 h-3" />
-                                <span>ピンを見る</span>
-                              </button>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => {
-                                  setEditingVisit(null);
-                                  setEditingPlace(place);
-                                  setIsRecordModalOpen(true);
-                                }}
-                                className="bg-sky-50 text-sky-700 border border-sky-200 px-2 py-0.5 rounded-lg text-[11px] font-bold hover:bg-sky-100"
-                              >
-                                ＋ 再訪を記録
-                              </button>
-                              <button
-                                onClick={() => handleDeletePlace(place.id)}
-                                className="text-neutral-400 hover:text-red-600 p-1"
-                                title="場所を削除"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    </div>
+              {placesSubView === 'visited' ? (
+                placesGroupedByArea.length === 0 ? (
+                  <div className="py-16 text-center text-neutral-400 text-xs">
+                    登録されている場所がありません。
                   </div>
-                ))
+                ) : (
+                  placesGroupedByArea.map(({ area, items }) => (
+                    <div key={area} className="space-y-2.5">
+                      <div className="flex items-center gap-1.5 text-xs font-black text-neutral-700 px-1">
+                        <Compass className="w-3.5 h-3.5 text-sky-500" />
+                        <span>{area}</span>
+                        <span className="text-neutral-400 font-normal">({items.length}箇所)</span>
+                      </div>
+
+                      <div className="space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0 xl:grid-cols-3">
+                      {items.map((place) => {
+                        const cat = CATEGORIES[place.category] || CATEGORIES.other;
+                        const lastFormatted = place.lastVisited ? formatDateWithWeekday(place.lastVisited) : '未訪問';
+                        const lastRelative = place.lastVisited ? getRelativeDays(place.lastVisited) : '';
+
+                        return (
+                          <div
+                            key={place.id}
+                            onClick={() => setSelectedPlaceDetail(place)}
+                            className="bg-white rounded-2xl p-4 border border-neutral-200/80 shadow-sm hover:border-neutral-300 transition-all cursor-pointer"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border} flex-shrink-0`}>
+                                    <cat.icon className="w-3 h-3" />
+                                    {cat.label}
+                                  </span>
+                                  <h3 className="text-sm font-bold text-neutral-900 truncate">
+                                    {place.name}
+                                  </h3>
+                                </div>
+                                <p className="text-[11px] text-neutral-400 mt-1 truncate">
+                                  {place.address || '住所未登録'}
+                                </p>
+                              </div>
+
+                              <span className="text-xs font-black text-sky-700 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-100 whitespace-nowrap flex-shrink-0">
+                                計 {place.visitCount} 回
+                              </span>
+                            </div>
+
+                            {/* 集計サマリー（詳細な訪問履歴は「記録」タブかカードをタップして確認） */}
+                            <div className="mt-2.5 flex items-center justify-between text-xs bg-neutral-50 p-2.5 rounded-xl border border-neutral-150">
+                              <span className="font-medium text-neutral-600 flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5 text-sky-500" />
+                                最後に訪れた日:
+                              </span>
+                              <div className="text-right">
+                                <span className="font-bold text-neutral-800">{lastFormatted}</span>
+                                {lastRelative && (
+                                  <span className="text-[11px] text-neutral-400 ml-1">({lastRelative})</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="mt-1.5 flex items-center justify-between text-[11px] text-neutral-500 px-0.5">
+                              <span className="flex items-center gap-1">
+                                <span className="text-amber-400">{'★'.repeat(Math.round(place.avgRating) || 0)}</span>
+                                <span>平均評価 {place.avgRating.toFixed(1)}</span>
+                              </span>
+                              <span>詳細をタップして確認 →</span>
+                            </div>
+
+                            {/* アクションバー */}
+                            <div
+                              className="mt-3 pt-2.5 border-t border-neutral-100 flex items-center justify-between text-xs"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="flex items-center gap-2">
+                                {place.googleMapsUrl && (
+                                  <a
+                                    href={place.googleMapsUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-neutral-600 hover:text-neutral-900 font-semibold flex items-center gap-1 text-[11px]"
+                                  >
+                                    <ExternalLink className="w-3 h-3 text-neutral-400" />
+                                    <span>Googleマップ</span>
+                                  </a>
+                                )}
+                                <button
+                                  onClick={() => handleJumpToMap(place)}
+                                  className="text-sky-600 hover:text-sky-700 font-semibold flex items-center gap-1 text-[11px]"
+                                >
+                                  <MapIcon className="w-3 h-3" />
+                                  <span>ピンを見る</span>
+                                </button>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => {
+                                    setEditingVisit(null);
+                                    setEditingPlace(place);
+                                    setIsRecordModalOpen(true);
+                                  }}
+                                  className="bg-sky-50 text-sky-700 border border-sky-200 px-2 py-0.5 rounded-lg text-[11px] font-bold hover:bg-sky-100"
+                                >
+                                  ＋ 再訪を記録
+                                </button>
+                                <button
+                                  onClick={() => handleDeletePlace(place.id)}
+                                  className="text-neutral-400 hover:text-red-600 p-1"
+                                  title="場所を削除"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      </div>
+                    </div>
+                  ))
+                )
+              ) : (
+                wishlistGroupedByArea.length === 0 ? (
+                  <div className="py-16 text-center text-neutral-400 text-xs">
+                    行きたい場所がまだありません。「行きたい場所を追加」から気になるお店を保存してみましょう。
+                  </div>
+                ) : (
+                  wishlistGroupedByArea.map(({ area, items }) => (
+                    <div key={area} className="space-y-2.5">
+                      <div className="flex items-center gap-1.5 text-xs font-black text-neutral-700 px-1">
+                        <Compass className="w-3.5 h-3.5 text-sky-500" />
+                        <span>{area}</span>
+                        <span className="text-neutral-400 font-normal">({items.length}箇所)</span>
+                      </div>
+
+                      <div className="space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0 xl:grid-cols-3">
+                      {items.map((wish) => {
+                        const cat = CATEGORIES[wish.category] || CATEGORIES.other;
+                        return (
+                          <div
+                            key={wish.id}
+                            className="bg-white rounded-2xl p-4 border border-neutral-200/80 shadow-sm hover:border-neutral-300 transition-all"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border} flex-shrink-0`}>
+                                    <cat.icon className="w-3 h-3" />
+                                    {cat.label}
+                                  </span>
+                                  <h3 className="text-sm font-bold text-neutral-900 truncate">
+                                    {wish.name}
+                                  </h3>
+                                </div>
+                                <p className="text-[11px] text-neutral-400 mt-1 truncate">
+                                  {wish.address || '住所未登録'}
+                                </p>
+                              </div>
+                              <Bookmark className="w-4 h-4 text-sky-400 flex-shrink-0" fill="currentColor" />
+                            </div>
+
+                            {wish.memo && (
+                              <p className="text-xs text-neutral-600 mt-2.5 bg-neutral-50 p-2.5 rounded-xl border border-neutral-100 leading-relaxed">
+                                {wish.memo}
+                              </p>
+                            )}
+
+                            <div className="mt-3 pt-2.5 border-t border-neutral-100 flex items-center justify-between text-xs">
+                              <div className="flex items-center gap-2">
+                                {wish.googleMapsUrl && (
+                                  <a
+                                    href={wish.googleMapsUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-neutral-600 hover:text-neutral-900 font-semibold flex items-center gap-1 text-[11px]"
+                                  >
+                                    <ExternalLink className="w-3 h-3 text-neutral-400" />
+                                    <span>Googleマップ</span>
+                                  </a>
+                                )}
+                                <button
+                                  onClick={() => handleDeleteWishlistItem(wish.id)}
+                                  className="text-neutral-400 hover:text-red-600 p-1"
+                                  title="行きたい場所から削除"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+
+                              <button
+                                onClick={() => handleConvertWishlistToVisit(wish)}
+                                className="bg-sky-500 hover:bg-sky-600 text-white px-3 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1"
+                              >
+                                <Sparkles className="w-3 h-3" />
+                                <span>行った！を記録</span>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      </div>
+                    </div>
+                  ))
+                )
               )}
             </div>
           )}
@@ -1101,6 +1417,7 @@ function OdekakeLogMain() {
               setIsRecordModalOpen(false);
               setEditingVisit(null);
               setEditingPlace(null);
+              setConvertingWishlistId(null);
             }}
             initialVisit={editingVisit}
             initialPlace={editingPlace}
@@ -1144,9 +1461,37 @@ function OdekakeLogMain() {
               }
               saveVisits(updatedVisits);
 
+              if (convertingWishlistId) {
+                saveWishlist(wishlist.filter(w => w.id !== convertingWishlistId));
+                showToast('行きたい場所リストから訪問記録に変換しました。');
+              }
+
               setIsRecordModalOpen(false);
               setEditingVisit(null);
               setEditingPlace(null);
+              setConvertingWishlistId(null);
+            }}
+          />
+        )}
+
+        {/* 行きたい場所を追加するモーダル */}
+        {isWishlistModalOpen && (
+          <WishlistFormModal
+            onClose={() => setIsWishlistModalOpen(false)}
+            isMapsLoaded={isMapsLoaded}
+            onOpenApiKeyModal={() => setShowApiKeyModal(true)}
+            onToast={showToast}
+            onSave={(wishData) => {
+              // 同じ場所（googlePlaceId）が既にリストにあれば重複登録しない
+              const existingIndex = wishlist.findIndex(w => w.googlePlaceId === wishData.googlePlaceId);
+              if (existingIndex >= 0) {
+                showToast('この場所は既に行きたいリストに入っています。');
+                setIsWishlistModalOpen(false);
+                return;
+              }
+              saveWishlist([...wishlist, wishData]);
+              setIsWishlistModalOpen(false);
+              showToast('行きたいリストに追加しました。');
             }}
           />
         )}
@@ -1290,15 +1635,19 @@ function OdekakeLogMain() {
 }
 
 // ==========================================
-// 記録モーダル（Places API 検索 ＋ フォールバック対応）
+// お店・場所を検索して選ぶための共通フィールド
+// （記録モーダル・行きたい場所モーダルの両方で使う）
 // ==========================================
-function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, isMapsLoaded, onOpenApiKeyModal, onToast, onSave }) {
-  const [date, setDate] = useState(initialVisit?.date || getTodayDateString());
-  const [rating, setRating] = useState(initialVisit?.rating || 5);
-  const [note, setNote] = useState(initialVisit?.note || '');
-  const [category, setCategory] = useState(initialPlace?.category || 'food');
-  const [selectedPlace, setSelectedPlace] = useState(initialPlace || null);
-
+function PlaceSearchField({
+  isMapsLoaded,
+  onOpenApiKeyModal,
+  category,
+  selectedPlace,
+  onSelectedPlaceChange,
+  isLocked = false,
+  onUnlock,
+  lockedLabel = '記録する場所'
+}) {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [predictions, setPredictions] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -1312,11 +1661,6 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, 
     { name: '一蘭 新宿中央東口店', address: '東京都新宿区新宿3-34-11', lat: 35.6896, lng: 139.7027, cat: 'food' },
     { name: '帝国ホテル 東京', address: '東京都千代田区内幸町1-1-1', lat: 35.6725, lng: 139.7592, cat: 'hotel' }
   ], []);
-
-  // 場所が既に確定している（編集 / 再訪記録）場合は、誤って別の場所に
-  // 差し替わらないよう検索欄をロックする。ロックを外すのは明示操作のみ。
-  const isKnownExistingPlace = !!(initialPlace && places.some(p => p.id === initialPlace.id));
-  const [isPlaceLocked, setIsPlaceLocked] = useState(isKnownExistingPlace);
 
   const autocompleteServiceRef = useRef(null);
   const placesServiceRef = useRef(null);
@@ -1451,9 +1795,8 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, 
             });
 
             const autoCategory = detectCategoryFromTypes(placeResult.types);
-            setCategory(autoCategory);
 
-            setSelectedPlace({
+            onSelectedPlaceChange({
               id: generateUUID(),
               googlePlaceId: placeResult.place_id,
               name: placeResult.name,
@@ -1474,8 +1817,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, 
     } else if (item.mockData) {
       // プリセット選択
       const p = item.mockData;
-      setCategory(p.cat);
-      setSelectedPlace({
+      onSelectedPlaceChange({
         id: generateUUID(),
         googlePlaceId: item.place_id,
         name: p.name,
@@ -1492,7 +1834,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, 
       setSearchKeyword('');
     } else {
       // 入力文字列でそのまま作成
-      setSelectedPlace({
+      onSelectedPlaceChange({
         id: generateUUID(),
         googlePlaceId: item.place_id,
         name: searchKeyword.trim(),
@@ -1500,7 +1842,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, 
         lat: 35.6812 + (Math.random() - 0.5) * 0.05,
         lng: 139.7671 + (Math.random() - 0.5) * 0.05,
         googleMapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchKeyword.trim())}`,
-        category: category,
+        category: category || 'other',
         country: '日本',
         administrativeArea: '東京都',
         locality: ''
@@ -1509,6 +1851,130 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, 
       setSearchKeyword('');
     }
   };
+
+  return (
+    <div className="bg-sky-50/70 p-3.5 rounded-2xl border border-sky-200 space-y-2">
+      <div ref={dummyDivRef} style={{ display: 'none' }} />
+
+      {/* 場所が既に確定している場合は検索欄をロックして誤操作を防ぐ */}
+      {isLocked && selectedPlace ? (
+        <>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
+              {lockedLabel}
+            </span>
+            <button
+              type="button"
+              onClick={() => onUnlock?.()}
+              className="text-[10px] text-sky-700 underline font-semibold"
+            >
+              別の場所に変更する
+            </button>
+          </div>
+          <div className="bg-white p-3 rounded-xl border border-sky-200 space-y-1">
+            <div className="text-xs font-bold text-neutral-900">{selectedPlace.name}</div>
+            <div className="text-[11px] text-neutral-500">{selectedPlace.address}</div>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-black text-sky-950 flex items-center gap-1.5">
+              <Search className="w-3.5 h-3.5 text-sky-600" />
+              <span>お店・場所を検索</span>
+              <span className="text-[10px] bg-sky-500 text-white px-1.5 py-0.2 rounded font-bold">必須</span>
+            </label>
+            {!isMapsLoaded && (
+              <button
+                type="button"
+                onClick={onOpenApiKeyModal}
+                className="text-[10px] text-amber-700 underline font-semibold"
+              >
+                APIキー設定
+              </button>
+            )}
+          </div>
+
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="店名、カフェ、駅名、ホテル名を入力..."
+              value={searchKeyword}
+              onChange={(e) => handleKeywordChange(e.target.value)}
+              onCompositionStart={handleCompositionStart}
+              onCompositionEnd={handleCompositionEnd}
+              className="w-full bg-white border border-sky-200 rounded-xl px-3 py-2 text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-sky-400 shadow-sm"
+            />
+
+            {isSearching && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-sky-500">
+                検索中...
+              </span>
+            )}
+
+            {/* 検索サジェストリスト */}
+            {predictions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-neutral-200 max-h-48 overflow-y-auto z-50 divide-y divide-neutral-100">
+                {predictions.map((p, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleSelectPrediction(p)}
+                    className="w-full text-left px-3 py-2.5 hover:bg-sky-50 transition-colors text-xs flex flex-col"
+                  >
+                    <span className="font-bold text-neutral-800">{p.name}</span>
+                    {p.secondary && (
+                      <span className="text-[10px] text-neutral-400 truncate">{p.secondary}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 選択された場所のプレビューカード */}
+          {selectedPlace && (
+            <div className="bg-white p-3 rounded-xl border border-sky-200 space-y-1 mt-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded">
+                  選択中の場所
+                </span>
+                {selectedPlace.googleMapsUrl && (
+                  <a
+                    href={selectedPlace.googleMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-sky-600 hover:underline flex items-center gap-0.5"
+                  >
+                    <span>Googleマップで確認</span>
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                )}
+              </div>
+              <div className="text-xs font-bold text-neutral-900">{selectedPlace.name}</div>
+              <div className="text-[11px] text-neutral-500">{selectedPlace.address}</div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ==========================================
+// 記録モーダル（Places API 検索 ＋ フォールバック対応）
+// ==========================================
+function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, isMapsLoaded, onOpenApiKeyModal, onToast, onSave }) {
+  const [date, setDate] = useState(initialVisit?.date || getTodayDateString());
+  const [rating, setRating] = useState(initialVisit?.rating || 5);
+  const [note, setNote] = useState(initialVisit?.note || '');
+  const [category, setCategory] = useState(initialPlace?.category || 'food');
+  const [selectedPlace, setSelectedPlace] = useState(initialPlace || null);
+
+  // 場所が既に確定している（編集 / 再訪記録）場合は、誤って別の場所に
+  // 差し替わらないよう検索欄をロックする。ロックを外すのは明示操作のみ。
+  const isKnownExistingPlace = !!(initialPlace && places.some(p => p.id === initialPlace.id));
+  const [isPlaceLocked, setIsPlaceLocked] = useState(isKnownExistingPlace);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -1533,8 +1999,6 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
       <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
-        <div ref={dummyDivRef} style={{ display: 'none' }} />
-
         {/* モーダルヘッダー */}
         <div className="px-5 py-3.5 border-b border-neutral-150 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -1552,107 +2016,18 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, 
 
         <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-4 flex-1">
 
-          {/* 場所が確定済み（編集・再訪記録）の場合は検索欄をロックして誤操作を防ぐ */}
-          {isPlaceLocked && selectedPlace ? (
-            <div className="bg-sky-50/70 p-3.5 rounded-2xl border border-sky-200 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
-                  記録する場所
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setIsPlaceLocked(false)}
-                  className="text-[10px] text-sky-700 underline font-semibold"
-                >
-                  別の場所に変更する
-                </button>
-              </div>
-              <div className="bg-white p-3 rounded-xl border border-sky-200 space-y-1">
-                <div className="text-xs font-bold text-neutral-900">{selectedPlace.name}</div>
-                <div className="text-[11px] text-neutral-500">{selectedPlace.address}</div>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-sky-50/70 p-3.5 rounded-2xl border border-sky-200 space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-black text-sky-950 flex items-center gap-1.5">
-                  <Search className="w-3.5 h-3.5 text-sky-600" />
-                  <span>お店・場所を検索</span>
-                  <span className="text-[10px] bg-sky-500 text-white px-1.5 py-0.2 rounded font-bold">必須</span>
-                </label>
-                {!isMapsLoaded && (
-                  <button
-                    type="button"
-                    onClick={onOpenApiKeyModal}
-                    className="text-[10px] text-amber-700 underline font-semibold"
-                  >
-                    APIキー設定
-                  </button>
-                )}
-              </div>
-
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="店名、カフェ、駅名、ホテル名を入力..."
-                  value={searchKeyword}
-                  onChange={(e) => handleKeywordChange(e.target.value)}
-                  onCompositionStart={handleCompositionStart}
-                  onCompositionEnd={handleCompositionEnd}
-                  className="w-full bg-white border border-sky-200 rounded-xl px-3 py-2 text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-sky-400 shadow-sm"
-                />
-
-                {isSearching && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-sky-500">
-                    検索中...
-                  </span>
-                )}
-
-                {/* 検索サジェストリスト */}
-                {predictions.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-neutral-200 max-h-48 overflow-y-auto z-50 divide-y divide-neutral-100">
-                    {predictions.map((p, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => handleSelectPrediction(p)}
-                        className="w-full text-left px-3 py-2.5 hover:bg-sky-50 transition-colors text-xs flex flex-col"
-                      >
-                        <span className="font-bold text-neutral-800">{p.name}</span>
-                        {p.secondary && (
-                          <span className="text-[10px] text-neutral-400 truncate">{p.secondary}</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* 選択された場所のプレビューカード */}
-              {selectedPlace && (
-                <div className="bg-white p-3 rounded-xl border border-sky-200 space-y-1 mt-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded">
-                      選択中の場所
-                    </span>
-                    {selectedPlace.googleMapsUrl && (
-                      <a
-                        href={selectedPlace.googleMapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[10px] text-sky-600 hover:underline flex items-center gap-0.5"
-                      >
-                        <span>Googleマップで確認</span>
-                        <ExternalLink className="w-2.5 h-2.5" />
-                      </a>
-                    )}
-                  </div>
-                  <div className="text-xs font-bold text-neutral-900">{selectedPlace.name}</div>
-                  <div className="text-[11px] text-neutral-500">{selectedPlace.address}</div>
-                </div>
-              )}
-            </div>
-          )}
+          <PlaceSearchField
+            isMapsLoaded={isMapsLoaded}
+            onOpenApiKeyModal={onOpenApiKeyModal}
+            category={category}
+            selectedPlace={selectedPlace}
+            onSelectedPlaceChange={(place) => {
+              setSelectedPlace(place);
+              setCategory(place.category);
+            }}
+            isLocked={isPlaceLocked}
+            onUnlock={() => setIsPlaceLocked(false)}
+          />
 
           {/* 訪問日 */}
           <div>
@@ -1720,6 +2095,97 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, 
               className="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 rounded-2xl shadow-md transition-all active:scale-[0.98] text-xs"
             >
               {initialVisit ? '記録を更新する' : 'この内容で記録する'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
+// 行きたい場所モーダル（訪問前のウィッシュリスト登録）
+// ==========================================
+function WishlistFormModal({ onClose, isMapsLoaded, onOpenApiKeyModal, onToast, onSave }) {
+  const [category, setCategory] = useState('food');
+  const [memo, setMemo] = useState('');
+  const [selectedPlace, setSelectedPlace] = useState(null);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!selectedPlace) {
+      onToast?.('場所・お店を検索して選択してください。');
+      return;
+    }
+
+    onSave({
+      ...selectedPlace,
+      category,
+      memo: memo.trim(),
+      addedAt: getTodayDateString()
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
+      <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-neutral-150 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
+              <Bookmark className="w-4 h-4" />
+            </div>
+            <h3 className="text-sm font-bold text-neutral-900">行きたい場所を追加</h3>
+          </div>
+          <button onClick={onClose} className="p-1 text-neutral-400 hover:text-neutral-600 rounded-lg">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-4 flex-1">
+          <PlaceSearchField
+            isMapsLoaded={isMapsLoaded}
+            onOpenApiKeyModal={onOpenApiKeyModal}
+            category={category}
+            selectedPlace={selectedPlace}
+            onSelectedPlaceChange={(place) => {
+              setSelectedPlace(place);
+              setCategory(place.category);
+            }}
+            isLocked={false}
+          />
+
+          <div>
+            <label className="block text-xs font-bold text-neutral-700 mb-1">カテゴリー</label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-2.5 py-2 text-xs text-neutral-800 focus:outline-none"
+            >
+              {Object.entries(CATEGORIES).map(([k, cat]) => (
+                <option key={k} value={k}>{cat.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-neutral-700 mb-1">
+              メモ（気になる理由・行きたい時期など）
+            </label>
+            <textarea
+              rows={3}
+              placeholder="友達がおすすめしてた、期間限定メニューが気になる、など..."
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+            />
+          </div>
+
+          <div className="pt-2">
+            <button
+              type="submit"
+              className="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 rounded-2xl shadow-md transition-all active:scale-[0.98] text-xs"
+            >
+              行きたいリストに追加する
             </button>
           </div>
         </form>
