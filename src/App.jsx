@@ -2130,7 +2130,7 @@ function OdekakeLogMain() {
                   placeholder="AIzaSy..."
                   value={apiKeyInput}
                   onChange={(e) => setApiKeyInput(e.target.value)}
-                  className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-500"
+                  className="w-full bg-neutral-50 border border-neutral-400 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-500"
                 />
 
                 <div className="flex justify-end gap-2 text-xs font-semibold">
@@ -2643,7 +2643,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+              className="w-full bg-neutral-50 border border-neutral-400 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
             />
           </div>
 
@@ -2654,7 +2654,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-2.5 py-2 text-xs text-neutral-800 focus:outline-none"
+                className="w-full bg-neutral-50 border border-neutral-400 rounded-xl px-2.5 py-2 text-xs text-neutral-800 focus:outline-none"
               >
                 {Object.entries(CATEGORIES).map(([k, cat]) => (
                   <option key={k} value={k}>{cat.label}</option>
@@ -2667,7 +2667,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
               <select
                 value={rating}
                 onChange={(e) => setRating(Number(e.target.value))}
-                className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-2.5 py-2 text-xs text-neutral-800 focus:outline-none"
+                className="w-full bg-neutral-50 border border-neutral-400 rounded-xl px-2.5 py-2 text-xs text-neutral-800 focus:outline-none"
               >
                 <option value={5}>⭐⭐⭐⭐⭐ (5点)</option>
                 <option value={4}>⭐⭐⭐⭐ (4点)</option>
@@ -2688,7 +2688,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
               placeholder="おすすめの料理、店内の雰囲気、混雑具合など..."
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+              className="w-full bg-neutral-50 border border-neutral-400 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
             />
           </div>
 
@@ -2745,7 +2745,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
               <select
                 value={tripId}
                 onChange={(e) => setTripId(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-2.5 py-2 text-xs text-neutral-800 focus:outline-none"
+                className="w-full bg-neutral-50 border border-neutral-400 rounded-xl px-2.5 py-2 text-xs text-neutral-800 focus:outline-none"
               >
                 <option value="">なし（通常の記録）</option>
                 {trips.map(t => (
@@ -2825,7 +2825,7 @@ function WishlistFormModal({ onClose, isMapsLoaded, onOpenApiKeyModal, onToast, 
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-2.5 py-2 text-xs text-neutral-800 focus:outline-none"
+              className="w-full bg-neutral-50 border border-neutral-400 rounded-xl px-2.5 py-2 text-xs text-neutral-800 focus:outline-none"
             >
               {Object.entries(CATEGORIES).map(([k, cat]) => (
                 <option key={k} value={k}>{cat.label}</option>
@@ -2842,7 +2842,7 @@ function WishlistFormModal({ onClose, isMapsLoaded, onOpenApiKeyModal, onToast, 
               placeholder="友達がおすすめしてた、期間限定メニューが気になる、など..."
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+              className="w-full bg-neutral-50 border border-neutral-400 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
             />
           </div>
 
@@ -3341,7 +3341,7 @@ function TripFormModal({ onClose, onSave }) {
               placeholder="例：台湾旅行"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+              className="w-full bg-neutral-50 border border-neutral-400 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
             />
           </div>
 
@@ -3353,7 +3353,7 @@ function TripFormModal({ onClose, onSave }) {
                 required
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+                className="w-full bg-neutral-50 border border-neutral-400 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
               />
             </div>
             <div>
@@ -3363,7 +3363,7 @@ function TripFormModal({ onClose, onSave }) {
                 required
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+                className="w-full bg-neutral-50 border border-neutral-400 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
               />
             </div>
           </div>
@@ -3379,7 +3379,7 @@ function TripFormModal({ onClose, onSave }) {
               placeholder="旅の目的、同行者など..."
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-300 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+              className="w-full bg-neutral-50 border border-neutral-400 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
             />
           </div>
 
@@ -3562,9 +3562,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
           fullscreenControl: false
         });
 
-        // Google標準のヘッダー（大きく不自然な位置に出る×ボタン）を無効化し、
-        // 自前の小さな閉じるボタンをコンテンツ内に用意する
-        infoWindowRef.current = new window.google.maps.InfoWindow({ headerDisabled: true });
+        infoWindowRef.current = new window.google.maps.InfoWindow();
 
         map.addListener('click', (e) => {
           const lat = e.latLng.lat();
@@ -3617,29 +3615,8 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
 
       marker.addListener('click', () => {
         const contentDiv = document.createElement('div');
-        contentDiv.style.position = 'relative';
         contentDiv.style.padding = '4px';
-        contentDiv.style.paddingRight = '22px';
         contentDiv.style.maxWidth = '200px';
-
-        // 自前の閉じるボタン（右上・控えめなサイズ）
-        const closeBtn = document.createElement('button');
-        closeBtn.innerHTML = '&times;';
-        closeBtn.setAttribute('aria-label', '閉じる');
-        closeBtn.style.position = 'absolute';
-        closeBtn.style.top = '0px';
-        closeBtn.style.right = '0px';
-        closeBtn.style.width = '20px';
-        closeBtn.style.height = '20px';
-        closeBtn.style.lineHeight = '18px';
-        closeBtn.style.textAlign = 'center';
-        closeBtn.style.fontSize = '16px';
-        closeBtn.style.color = '#94a3b8';
-        closeBtn.style.background = 'transparent';
-        closeBtn.style.border = 'none';
-        closeBtn.style.cursor = 'pointer';
-        closeBtn.onclick = () => infoWindowRef.current.close();
-        contentDiv.appendChild(closeBtn);
 
         const title = document.createElement('div');
         title.style.fontWeight = 'bold';
