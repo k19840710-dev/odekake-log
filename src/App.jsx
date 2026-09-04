@@ -60,20 +60,19 @@ const CATEGORIES = {
   other: { label: 'その他施設・駅', icon: MapPin, emoji: '📍', color: '#64748b', bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200' }
 };
 
-// カテゴリーの絵文字＋色から、地図ピン用のSVGアイコン（data URI）を作る
-function buildEmojiMarkerIcon(emoji, color) {
+// カテゴリーの絵文字から、地図ピン用のSVGアイコン（data URI）を作る
+// Googleマップの絵文字ピンのように、背景の色板を持たせず絵文字そのものだけを表示する
+function buildEmojiMarkerIcon(emoji, faded = false) {
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="52" viewBox="0 0 40 52">
-      <path d="M20 0C9 0 0 9 0 20c0 13.5 17 29.5 19.1 31.4a1.2 1.2 0 0 0 1.8 0C23 49.5 40 33.5 40 20 40 9 31 0 20 0z" fill="${color}" stroke="#ffffff" stroke-width="2"/>
-      <circle cx="20" cy="19" r="14" fill="#ffffff"/>
-      <text x="20" y="25" font-size="18" text-anchor="middle">${emoji}</text>
+    <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34">
+      <text x="17" y="26" font-size="25" text-anchor="middle" opacity="${faded ? 0.55 : 1}">${emoji}</text>
     </svg>
   `.trim();
 
   return {
     url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
-    scaledSize: new window.google.maps.Size(36, 46),
-    anchor: new window.google.maps.Point(18, 46)
+    scaledSize: new window.google.maps.Size(34, 34),
+    anchor: new window.google.maps.Point(17, 24)
   };
 }
 
@@ -1598,9 +1597,11 @@ function OdekakeLogMain() {
               isLoaded={isMapsLoaded}
               apiKey={apiKey}
               places={enrichedPlaces}
+              wishlist={wishlist}
               targetPlace={targetPlaceForMap}
               onToast={showToast}
               onSelectPlace={(p) => setSelectedPlaceDetail(p)}
+              onConvertWishlistToVisit={handleConvertWishlistToVisit}
               onRequestAddSpot={(lat, lng, address) => {
                 setEditingVisit(null);
                 setEditingPlace({
@@ -2658,15 +2659,22 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onAddVisit, onDeletePla
 // ==========================================
 // マップ表示コンポーネント（Google Maps ＆ プレビューフォールバック）
 // ==========================================
-function MapViewerComponent({ isLoaded, apiKey, places, targetPlace, onSelectPlace, onRequestAddSpot, onOpenApiKeyModal, onToast }) {
+function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, onSelectPlace, onConvertWishlistToVisit, onRequestAddSpot, onOpenApiKeyModal, onToast }) {
   const mapRef = useRef(null);
   const googleMapInstanceRef = useRef(null);
   const markersRef = useRef([]);
   const infoWindowRef = useRef(null);
 
+  const [mapViewMode, setMapViewMode] = useState('visited'); // 'visited' | 'wishlist'
   const [mapCategory, setMapCategory] = useState('all');
   const [mapSearch, setMapSearch] = useState('');
   const [isLocating, setIsLocating] = useState(false);
+
+  // 「行った」／「行きたい」のどちらを地図に表示するか
+  const sourceList = useMemo(
+    () => (mapViewMode === 'wishlist' ? wishlist : places),
+    [mapViewMode, wishlist, places]
+  );
 
   // Google Maps 初期化
   useEffect(() => {
@@ -2713,7 +2721,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, targetPlace, onSelectPla
     markersRef.current.forEach(m => m.setMap(null));
     markersRef.current = [];
 
-    let filtered = places.filter(p => p.lat && p.lng);
+    let filtered = sourceList.filter(p => p.lat && p.lng);
     if (mapCategory !== 'all') {
       filtered = filtered.filter(p => p.category === mapCategory);
     }
@@ -2732,12 +2740,10 @@ function MapViewerComponent({ isLoaded, apiKey, places, targetPlace, onSelectPla
         position,
         map,
         title: place.name,
-        icon: buildEmojiMarkerIcon(cat.emoji, cat.color)
+        icon: buildEmojiMarkerIcon(cat.emoji, mapViewMode === 'wishlist')
       });
 
       marker.addListener('click', () => {
-        const lastFormatted = place.lastVisited ? formatDateWithWeekday(place.lastVisited) : '未訪問';
-
         const contentDiv = document.createElement('div');
         contentDiv.style.padding = '4px';
         contentDiv.style.maxWidth = '200px';
@@ -2752,11 +2758,13 @@ function MapViewerComponent({ isLoaded, apiKey, places, targetPlace, onSelectPla
         sub.style.fontSize = '11px';
         sub.style.color = '#0284c7';
         sub.style.marginTop = '2px';
-        sub.textContent = `最終訪問: ${lastFormatted}`;
+        sub.textContent = mapViewMode === 'wishlist'
+          ? '行きたい場所として保存済み'
+          : `最終訪問: ${place.lastVisited ? formatDateWithWeekday(place.lastVisited) : '未訪問'}`;
         contentDiv.appendChild(sub);
 
         const btn = document.createElement('button');
-        btn.innerText = '詳細を見る';
+        btn.innerText = mapViewMode === 'wishlist' ? '訪問を記録' : '詳細を見る';
         btn.style.marginTop = '6px';
         btn.style.width = '100%';
         btn.style.padding = '4px';
@@ -2766,7 +2774,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, targetPlace, onSelectPla
         btn.style.border = 'none';
         btn.style.borderRadius = '4px';
         btn.style.cursor = 'pointer';
-        btn.onclick = () => onSelectPlace(place);
+        btn.onclick = () => (mapViewMode === 'wishlist' ? onConvertWishlistToVisit?.(place) : onSelectPlace(place));
         contentDiv.appendChild(btn);
 
         infoWindowRef.current.setContent(contentDiv);
@@ -2781,7 +2789,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, targetPlace, onSelectPla
       map.fitBounds(bounds, { top: 50, bottom: 50, left: 30, right: 30 });
       if (filtered.length === 1) map.setZoom(15);
     }
-  }, [places, mapCategory, mapSearch, targetPlace, isLoaded]);
+  }, [sourceList, mapViewMode, mapCategory, mapSearch, targetPlace, isLoaded, onSelectPlace, onConvertWishlistToVisit]);
 
   // targetPlace 移動
   useEffect(() => {
@@ -2819,6 +2827,30 @@ function MapViewerComponent({ isLoaded, apiKey, places, targetPlace, onSelectPla
 
       {/* 検索・カテゴリー */}
       <div className="absolute top-3 left-3 right-3 z-20 flex flex-col gap-2 pointer-events-none">
+        {/* 行った／行きたい 切り替え */}
+        <div className="pointer-events-auto flex justify-center">
+          <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md rounded-full p-1 shadow-md border border-neutral-200 text-xs">
+            <button
+              onClick={() => setMapViewMode('visited')}
+              className={`flex items-center gap-1 px-3 py-1 rounded-full font-bold transition-colors ${
+                mapViewMode === 'visited' ? 'bg-sky-600 text-white' : 'text-neutral-500'
+              }`}
+            >
+              <Compass className="w-3.5 h-3.5" />
+              <span>行った ({places.length})</span>
+            </button>
+            <button
+              onClick={() => setMapViewMode('wishlist')}
+              className={`flex items-center gap-1 px-3 py-1 rounded-full font-bold transition-colors ${
+                mapViewMode === 'wishlist' ? 'bg-sky-600 text-white' : 'text-neutral-500'
+              }`}
+            >
+              <Bookmark className="w-3.5 h-3.5" />
+              <span>行きたい ({wishlist.length})</span>
+            </button>
+          </div>
+        </div>
+
         <div className="pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-md border border-neutral-200 flex items-center px-3 py-1.5">
           <Search className="w-3.5 h-3.5 text-neutral-400 mr-2" />
           <input
@@ -2842,7 +2874,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, targetPlace, onSelectPla
               mapCategory === 'all' ? 'bg-neutral-900 text-white' : 'bg-white/90 text-neutral-700'
             }`}
           >
-            すべて ({places.length})
+            すべて ({sourceList.length})
           </button>
           {Object.entries(CATEGORIES).map(([k, cat]) => (
             <button
@@ -2888,17 +2920,39 @@ function MapViewerComponent({ isLoaded, apiKey, places, targetPlace, onSelectPla
             </button>
           </div>
 
+          {/* 行った／行きたい 切り替え（フォールバック時も利用可能） */}
+          <div className="flex items-center gap-1 bg-white rounded-full p-1 border border-neutral-200 text-xs w-fit mb-3">
+            <button
+              onClick={() => setMapViewMode('visited')}
+              className={`flex items-center gap-1 px-3 py-1 rounded-full font-bold transition-colors ${
+                mapViewMode === 'visited' ? 'bg-sky-600 text-white' : 'text-neutral-500'
+              }`}
+            >
+              <Compass className="w-3.5 h-3.5" />
+              <span>行った ({places.length})</span>
+            </button>
+            <button
+              onClick={() => setMapViewMode('wishlist')}
+              className={`flex items-center gap-1 px-3 py-1 rounded-full font-bold transition-colors ${
+                mapViewMode === 'wishlist' ? 'bg-sky-600 text-white' : 'text-neutral-500'
+              }`}
+            >
+              <Bookmark className="w-3.5 h-3.5" />
+              <span>行きたい ({wishlist.length})</span>
+            </button>
+          </div>
+
           <div className="text-xs font-bold text-neutral-600 mb-2">
-            登録済みスポット一覧 ({places.length}件):
+            {mapViewMode === 'wishlist' ? '行きたい場所一覧' : '登録済みスポット一覧'} ({sourceList.length}件):
           </div>
 
           <div className="space-y-2 flex-1">
-            {places.map(p => {
+            {sourceList.map(p => {
               const cat = CATEGORIES[p.category] || CATEGORIES.other;
               return (
                 <div
                   key={p.id}
-                  onClick={() => onSelectPlace(p)}
+                  onClick={() => (mapViewMode === 'wishlist' ? onConvertWishlistToVisit?.(p) : onSelectPlace(p))}
                   className="bg-white p-3 rounded-xl border border-neutral-200 shadow-sm flex items-center justify-between cursor-pointer hover:border-sky-300"
                 >
                   <div>
