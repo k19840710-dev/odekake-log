@@ -26,7 +26,9 @@ import {
   Check,
   Building2,
   Compass,
-  RefreshCw
+  RefreshCw,
+  Download,
+  Upload
 } from 'lucide-react';
 
 // ==========================================
@@ -336,6 +338,23 @@ function OdekakeLogMain() {
   const [selectedPlaceDetail, setSelectedPlaceDetail] = useState(null);
   const [targetPlaceForMap, setTargetPlaceForMap] = useState(null);
 
+  // トースト通知（alert()の代わりに使う軽量な通知）
+  const [toastMessage, setToastMessage] = useState('');
+  const toastTimerRef = useRef(null);
+  const showToast = (message) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToastMessage(message);
+    toastTimerRef.current = setTimeout(() => setToastMessage(''), 3000);
+  };
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
+  // データのエクスポート／インポート用
+  const importFileInputRef = useRef(null);
+
   // 1. ローカルストレージからの安全な復元
   useEffect(() => {
     try {
@@ -561,6 +580,65 @@ function OdekakeLogMain() {
     setActiveTab('map');
   };
 
+  // 7. データのバックアップ（エクスポート／インポート）
+  const handleExportData = () => {
+    try {
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        places,
+        visits
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `odekake-log-backup-${getTodayDateString()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('バックアップファイルをダウンロードしました。');
+    } catch (e) {
+      console.warn('Export failed:', e);
+      showToast('エクスポートに失敗しました。');
+    }
+  };
+
+  const handleImportFileSelected = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // 同じファイルを選び直せるようにリセット
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result);
+        const importedPlaces = Array.isArray(parsed?.places) ? parsed.places : null;
+        const importedVisits = Array.isArray(parsed?.visits) ? parsed.visits : null;
+
+        if (!importedPlaces || !importedVisits) {
+          showToast('バックアップファイルの形式が正しくありません。');
+          return;
+        }
+
+        setConfirmDialog({
+          title: 'データの復元',
+          message: `現在のデータ（場所${places.length}件・記録${visits.length}件）を、バックアップの内容（場所${importedPlaces.length}件・記録${importedVisits.length}件）で置き換えます。よろしいですか？`,
+          onConfirm: () => {
+            savePlaces(importedPlaces);
+            saveVisits(importedVisits);
+            showToast('データを復元しました。');
+          }
+        });
+      } catch (err) {
+        console.warn('Import failed:', err);
+        showToast('ファイルの読み込みに失敗しました。JSON形式のバックアップファイルを選んでください。');
+      }
+    };
+    reader.onerror = () => showToast('ファイルの読み込みに失敗しました。');
+    reader.readAsText(file);
+  };
+
   return (
     <div className="flex justify-center bg-neutral-100 min-h-screen font-sans text-neutral-800 antialiased">
       <div className="w-full max-w-md lg:max-w-6xl bg-[#fafafa] min-h-screen flex flex-col shadow-xl lg:shadow-none relative pb-20 lg:pb-8 border-x lg:border-x-0 border-neutral-200">
@@ -688,6 +766,7 @@ function OdekakeLogMain() {
                         : 'bg-white text-neutral-600 border-neutral-200'
                     }`}
                   >
+                    <cat.icon className="w-3 h-3" />
                     <span>{cat.label}</span>
                   </button>
                 ))}
@@ -743,7 +822,8 @@ function OdekakeLogMain() {
                           <div className="mt-2.5 flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5">
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border} flex-shrink-0`}>
+                                <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border} flex-shrink-0`}>
+                                  <cat.icon className="w-3 h-3" />
                                   {cat.label}
                                 </span>
                                 <h2 className="text-sm font-bold text-neutral-900 truncate">
@@ -837,7 +917,8 @@ function OdekakeLogMain() {
                           <div className="flex items-start justify-between gap-2">
                             <div>
                               <div className="flex items-center gap-1.5">
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
+                                <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
+                                  <cat.icon className="w-3 h-3" />
                                   {cat.label}
                                 </span>
                                 <h3 className="text-sm font-bold text-neutral-900">
@@ -954,6 +1035,7 @@ function OdekakeLogMain() {
               apiKey={apiKey}
               places={enrichedPlaces}
               targetPlace={targetPlaceForMap}
+              onToast={showToast}
               onSelectPlace={(p) => setSelectedPlaceDetail(p)}
               onRequestAddSpot={(lat, lng, address) => {
                 setEditingVisit(null);
@@ -1025,6 +1107,7 @@ function OdekakeLogMain() {
             places={places}
             isMapsLoaded={isMapsLoaded}
             onOpenApiKeyModal={() => setShowApiKeyModal(true)}
+            onToast={showToast}
             onSave={({ placeData, visitData }) => {
               let targetPlaceId = placeData.id;
               let updatedPlaces = [...places];
@@ -1158,7 +1241,46 @@ function OdekakeLogMain() {
                   </button>
                 </div>
               </form>
+
+              <div className="pt-3 border-t border-neutral-150 space-y-2">
+                <div className="text-xs font-bold text-neutral-700">データのバックアップ</div>
+                <p className="text-[11px] text-neutral-500 leading-relaxed">
+                  登録した場所・訪問記録はこの端末のブラウザ内にのみ保存されています。機種変更やブラウザの変更に備えて、JSONファイルとして書き出し・読み込みができます。
+                </p>
+                <div className="flex gap-2 text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={handleExportData}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>エクスポート</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => importFileInputRef.current?.click()}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>インポート</span>
+                  </button>
+                  <input
+                    ref={importFileInputRef}
+                    type="file"
+                    accept="application/json,.json"
+                    onChange={handleImportFileSelected}
+                    className="hidden"
+                  />
+                </div>
+              </div>
             </div>
+          </div>
+        )}
+
+        {/* トースト通知（alertの代わりの軽量な通知） */}
+        {toastMessage && (
+          <div className="fixed bottom-24 lg:bottom-8 left-1/2 -translate-x-1/2 z-[60] max-w-[90%] px-4 py-2.5 rounded-xl bg-neutral-900/95 text-white text-xs font-semibold shadow-xl text-center">
+            {toastMessage}
           </div>
         )}
 
@@ -1170,7 +1292,7 @@ function OdekakeLogMain() {
 // ==========================================
 // 記録モーダル（Places API 検索 ＋ フォールバック対応）
 // ==========================================
-function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, isMapsLoaded, onOpenApiKeyModal, onSave }) {
+function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, isMapsLoaded, onOpenApiKeyModal, onToast, onSave }) {
   const [date, setDate] = useState(initialVisit?.date || getTodayDateString());
   const [rating, setRating] = useState(initialVisit?.rating || 5);
   const [note, setNote] = useState(initialVisit?.note || '');
@@ -1391,7 +1513,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!selectedPlace) {
-      alert('場所・お店を検索して選択してください。');
+      onToast?.('場所・お店を検索して選択してください。');
       return;
     }
 
@@ -1617,7 +1739,8 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onAddVisit, onDeletePla
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
       <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
         <div className="px-5 py-3.5 border-b border-neutral-150 flex items-center justify-between">
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
+          <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
+            <cat.icon className="w-3 h-3" />
             {cat.label}
           </span>
           <button onClick={onClose} className="p-1 text-neutral-400 hover:text-neutral-600">
@@ -1700,7 +1823,7 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onAddVisit, onDeletePla
 // ==========================================
 // マップ表示コンポーネント（Google Maps ＆ プレビューフォールバック）
 // ==========================================
-function MapViewerComponent({ isLoaded, apiKey, places, targetPlace, onSelectPlace, onRequestAddSpot, onOpenApiKeyModal }) {
+function MapViewerComponent({ isLoaded, apiKey, places, targetPlace, onSelectPlace, onRequestAddSpot, onOpenApiKeyModal, onToast }) {
   const mapRef = useRef(null);
   const googleMapInstanceRef = useRef(null);
   const markersRef = useRef([]);
@@ -1835,7 +1958,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, targetPlace, onSelectPla
   // 現在地取得
   const handleLocate = () => {
     if (!navigator.geolocation) {
-      alert('現在地取得に対応していません。');
+      onToast?.('現在地取得に対応していません。');
       return;
     }
     setIsLocating(true);
@@ -1849,7 +1972,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, targetPlace, onSelectPla
       },
       () => {
         setIsLocating(false);
-        alert('現在地を取得できませんでした。位置情報の許可をご確認ください。');
+        onToast?.('現在地を取得できませんでした。位置情報の許可をご確認ください。');
       },
       { timeout: 8000 }
     );
@@ -1893,6 +2016,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, targetPlace, onSelectPla
                 mapCategory === k ? 'bg-sky-600 text-white' : 'bg-white/90 text-neutral-700'
               }`}
             >
+              <cat.icon className="w-3 h-3" />
               <span>{cat.label}</span>
             </button>
           ))}
@@ -1943,7 +2067,8 @@ function MapViewerComponent({ isLoaded, apiKey, places, targetPlace, onSelectPla
                 >
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <span className={`text-[9px] font-bold px-1 rounded ${cat.bg} ${cat.text}`}>
+                      <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1 rounded ${cat.bg} ${cat.text}`}>
+                        <cat.icon className="w-2.5 h-2.5" />
                         {cat.label}
                       </span>
                       <span className="text-xs font-bold text-neutral-800">{p.name}</span>
