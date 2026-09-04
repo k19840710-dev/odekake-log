@@ -133,6 +133,66 @@ function getRelativeDays(dateStr) {
 }
 
 // ==========================================
+// 距離計算ユーティリティ（近くの保存済みスポット用）
+// ==========================================
+function calculateDistanceMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000; // 地球の半径(m)
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function formatDistance(meters) {
+  if (meters < 1000) return `${Math.round(meters)}m`;
+  return `${(meters / 1000).toFixed(1)}km`;
+}
+
+// ==========================================
+// 画像圧縮ユーティリティ（訪問記録の写真）
+// 端末のブラウザ内(localStorage)に保存するため、
+// 長辺を縮小しJPEGで再圧縮して容量を抑える
+// ==========================================
+function compressImageFile(file, maxDimension = 900, quality = 0.72) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDimension || height > maxDimension) {
+          if (width >= height) {
+            height = Math.round(height * (maxDimension / width));
+            width = maxDimension;
+          } else {
+            width = Math.round(width * (maxDimension / height));
+            height = maxDimension;
+          }
+        }
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        } catch (err) {
+          reject(err);
+        }
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ==========================================
 // 初期サンプルデータ（正規化モデル）
 // ==========================================
 const INITIAL_PLACES = [
@@ -392,6 +452,13 @@ function OdekakeLogMain() {
   const [placesSubView, setPlacesSubView] = useState('visited'); // 'visited' | 'wishlist'
   const [logsGroupBy, setLogsGroupBy] = useState('month'); // 'month' | 'trip'
 
+  // 近くの保存済み（行きたい）スポット
+  const [userLocation, setUserLocation] = useState(null); // { lat, lng }
+  const [isLocatingNearby, setIsLocatingNearby] = useState(false);
+  const [nearbyError, setNearbyError] = useState('');
+  const [nearbyRadiusFilter, setNearbyRadiusFilter] = useState(3000); // メートル、nullで絞り込みなし
+  const [isNearbyPanelOpen, setIsNearbyPanelOpen] = useState(false);
+
   // モーダル・ダイアログ
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [editingVisit, setEditingVisit] = useState(null);
@@ -466,6 +533,11 @@ function OdekakeLogMain() {
       localStorage.setItem(STORAGE_VISITS_KEY, JSON.stringify(newVisits));
     } catch (e) {
       console.warn('Failed to save visits:', e);
+      if (e && (e.name === 'QuotaExceededError' || e.code === 22)) {
+        showToast('写真の容量が大きく、保存できませんでした。写真を減らすか画質を下げてお試しください。');
+      } else {
+        showToast('保存に失敗しました。');
+      }
     }
   };
 
@@ -725,6 +797,19 @@ function OdekakeLogMain() {
     return Object.entries(areaGroups).map(([area, items]) => ({ area, items }));
   }, [wishlist, searchQuery, selectedCategory]);
 
+  // 5c. 現在地から近い「行きたい場所」（緯度経度を持つものだけが対象）
+  const nearbyWishlist = useMemo(() => {
+    if (!userLocation) return [];
+    return wishlist
+      .filter(w => typeof w.lat === 'number' && typeof w.lng === 'number')
+      .map(w => ({
+        ...w,
+        distanceMeters: calculateDistanceMeters(userLocation.lat, userLocation.lng, w.lat, w.lng)
+      }))
+      .filter(w => (nearbyRadiusFilter ? w.distanceMeters <= nearbyRadiusFilter : true))
+      .sort((a, b) => a.distanceMeters - b.distanceMeters);
+  }, [wishlist, userLocation, nearbyRadiusFilter]);
+
   // 6. 削除ハンドラー
   const handleDeleteVisit = (visitId) => {
     setConfirmDialog({
@@ -784,6 +869,28 @@ function OdekakeLogMain() {
       locality: wishItem.locality
     });
     setIsRecordModalOpen(true);
+  };
+
+  // 現在地から「行きたい場所」を近い順に確認する
+  const handleFindNearbyWishlist = () => {
+    if (!navigator.geolocation) {
+      setNearbyError('この端末・ブラウザでは現在地を取得できません。');
+      return;
+    }
+    setIsLocatingNearby(true);
+    setNearbyError('');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setIsLocatingNearby(false);
+        setIsNearbyPanelOpen(true);
+      },
+      () => {
+        setIsLocatingNearby(false);
+        setNearbyError('現在地を取得できませんでした。位置情報の利用を許可しているかご確認ください。');
+      },
+      { timeout: 8000 }
+    );
   };
 
   // 7. データのバックアップ（エクスポート／インポート）
@@ -1065,8 +1172,21 @@ function OdekakeLogMain() {
                               </p>
                             </div>
 
-                            <div className="flex text-amber-400 text-xs flex-shrink-0">
-                              {'★'.repeat(item.rating || 5)}
+                            <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                              {/* 写真がある場合のみ、控えめに1枚目をサムネイル表示 */}
+                              {item.photos && item.photos.length > 0 && (
+                                <div className="relative w-11 h-11 rounded-lg overflow-hidden border border-neutral-200 bg-neutral-100">
+                                  <img src={item.photos[0]} alt="" className="w-full h-full object-cover" />
+                                  {item.photos.length > 1 && (
+                                    <span className="absolute bottom-0 right-0 bg-black/60 text-white text-[8px] font-bold px-1 leading-[14px] rounded-tl">
+                                      +{item.photos.length - 1}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              <div className="flex text-amber-400 text-xs">
+                                {'★'.repeat(item.rating || 5)}
+                              </div>
                             </div>
                           </div>
 
@@ -1177,31 +1297,32 @@ function OdekakeLogMain() {
                           <div
                             key={place.id}
                             onClick={() => setSelectedPlaceDetail(place)}
-                            className="bg-white rounded-2xl p-4 border border-neutral-200/80 shadow-sm hover:border-neutral-300 transition-all cursor-pointer"
+                            className="bg-white rounded-2xl p-5 border border-neutral-200/80 shadow-sm hover:border-neutral-300 transition-all cursor-pointer"
                           >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border} flex-shrink-0`}>
-                                    <cat.icon className="w-3 h-3" />
-                                    {cat.label}
-                                  </span>
-                                  <h3 className="text-sm font-bold text-neutral-900 truncate">
-                                    {place.name}
-                                  </h3>
-                                </div>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
+                                  <cat.icon className="w-3 h-3" />
+                                  {cat.label}
+                                </span>
+                                <h3 className="text-sm font-bold text-neutral-900 leading-snug mt-1.5">
+                                  {place.name}
+                                </h3>
                                 <p className="text-[11px] text-neutral-400 mt-1 truncate">
                                   {place.address || '住所未登録'}
                                 </p>
                               </div>
 
-                              <span className="text-xs font-black text-sky-700 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-100 whitespace-nowrap flex-shrink-0">
-                                計 {place.visitCount} 回
-                              </span>
+                              <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                                <span className="text-xs font-black text-sky-700 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-100 whitespace-nowrap">
+                                  計 {place.visitCount} 回
+                                </span>
+                                <ChevronRight className="w-4 h-4 text-neutral-300" />
+                              </div>
                             </div>
 
                             {/* 集計サマリー（詳細な訪問履歴は「記録」タブかカードをタップして確認） */}
-                            <div className="mt-2.5 flex items-center justify-between text-xs bg-neutral-50 p-2.5 rounded-xl border border-neutral-150">
+                            <div className="mt-3.5 flex items-center justify-between text-xs bg-neutral-50 p-2.5 rounded-xl border border-neutral-150">
                               <span className="font-medium text-neutral-600 flex items-center gap-1">
                                 <Clock className="w-3.5 h-3.5 text-sky-500" />
                                 最後に訪れた日:
@@ -1213,59 +1334,44 @@ function OdekakeLogMain() {
                                 )}
                               </div>
                             </div>
-                            <div className="mt-1.5 flex items-center justify-between text-[11px] text-neutral-500 px-0.5">
-                              <span className="flex items-center gap-1">
-                                <span className="text-amber-400">{'★'.repeat(Math.round(place.avgRating) || 0)}</span>
-                                <span>平均評価 {place.avgRating.toFixed(1)}</span>
-                              </span>
-                              <span>詳細をタップして確認 →</span>
+                            <div className="mt-1.5 flex items-center gap-1 px-0.5 text-[11px] text-neutral-500">
+                              <span className="text-amber-400">{'★'.repeat(Math.round(place.avgRating) || 0)}</span>
+                              <span>平均評価 {place.avgRating.toFixed(1)}</span>
                             </div>
 
-                            {/* アクションバー */}
+                            {/* アクションバー：主要な操作だけに絞る（削除は詳細画面から） */}
                             <div
-                              className="mt-3 pt-2.5 border-t border-neutral-100 flex items-center justify-between text-xs"
+                              className="mt-3.5 pt-3 border-t border-neutral-100 flex items-center gap-2"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <div className="flex items-center gap-2">
-                                {place.googleMapsUrl && (
-                                  <a
-                                    href={place.googleMapsUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-neutral-600 hover:text-neutral-900 font-semibold flex items-center gap-1 text-[11px]"
-                                  >
-                                    <ExternalLink className="w-3 h-3 text-neutral-400" />
-                                    <span>Googleマップ</span>
-                                  </a>
-                                )}
-                                <button
-                                  onClick={() => handleJumpToMap(place)}
-                                  className="text-sky-600 hover:text-sky-700 font-semibold flex items-center gap-1 text-[11px]"
+                              {place.googleMapsUrl && (
+                                <a
+                                  href={place.googleMapsUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-neutral-600 hover:text-neutral-900 font-semibold flex items-center gap-1 text-[11px]"
                                 >
-                                  <MapIcon className="w-3 h-3" />
-                                  <span>ピンを見る</span>
-                                </button>
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => {
-                                    setEditingVisit(null);
-                                    setEditingPlace(place);
-                                    setIsRecordModalOpen(true);
-                                  }}
-                                  className="bg-sky-50 text-sky-700 border border-sky-200 px-2 py-0.5 rounded-lg text-[11px] font-bold hover:bg-sky-100"
-                                >
-                                  ＋ 再訪を記録
-                                </button>
-                                <button
-                                  onClick={() => handleDeletePlace(place.id)}
-                                  className="text-neutral-400 hover:text-red-600 p-1"
-                                  title="場所を削除"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
+                                  <ExternalLink className="w-3 h-3 text-neutral-400" />
+                                  <span>Googleマップ</span>
+                                </a>
+                              )}
+                              <button
+                                onClick={() => handleJumpToMap(place)}
+                                className="text-neutral-400 hover:text-sky-600 p-1 flex-shrink-0"
+                                title="マップでピンを見る"
+                              >
+                                <MapIcon className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingVisit(null);
+                                  setEditingPlace(place);
+                                  setIsRecordModalOpen(true);
+                                }}
+                                className="ml-auto bg-sky-50 text-sky-700 border border-sky-200 px-3 py-1 rounded-lg text-[11px] font-bold hover:bg-sky-100 flex-shrink-0"
+                              >
+                                ＋ 再訪を記録
+                              </button>
                             </div>
                           </div>
                         );
@@ -1275,7 +1381,131 @@ function OdekakeLogMain() {
                   ))
                 )
               ) : (
-                wishlistGroupedByArea.length === 0 ? (
+                <>
+                {/* 近くの保存済みスポット（現在地から距離順に確認） */}
+                <div className="bg-sky-50/70 border border-sky-200 rounded-2xl p-3.5 space-y-2.5">
+                  {!userLocation ? (
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 text-xs text-sky-900 font-bold">
+                        <Navigation className="w-3.5 h-3.5 text-sky-600" />
+                        <span>近くの保存済みスポットを確認</span>
+                      </div>
+                      <button
+                        onClick={handleFindNearbyWishlist}
+                        disabled={isLocatingNearby}
+                        className="bg-sky-500 hover:bg-sky-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-full disabled:opacity-60 flex items-center gap-1"
+                      >
+                        {isLocatingNearby && <RefreshCw className="w-3 h-3 animate-spin" />}
+                        <span>{isLocatingNearby ? '取得中...' : '現在地から探す'}</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setIsNearbyPanelOpen(v => !v)}
+                        className="w-full flex items-center justify-between gap-2 text-left"
+                      >
+                        <span className="flex items-center gap-1.5 text-xs font-bold text-sky-900">
+                          <Navigation className="w-3.5 h-3.5 text-sky-600 flex-shrink-0" />
+                          <span>近くに保存済みの場所が {nearbyWishlist.length} 件あります</span>
+                        </span>
+                        <ChevronDown className={`w-4 h-4 text-sky-600 flex-shrink-0 transition-transform ${isNearbyPanelOpen ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {isNearbyPanelOpen && (
+                        <div className="space-y-2.5">
+                          <div className="flex items-center gap-1.5 overflow-x-auto text-[11px] pb-0.5">
+                            {[
+                              { label: '500m以内', value: 500 },
+                              { label: '1km以内', value: 1000 },
+                              { label: '3km以内', value: 3000 },
+                              { label: 'すべて', value: null }
+                            ].map((opt) => (
+                              <button
+                                key={opt.label}
+                                onClick={() => setNearbyRadiusFilter(opt.value)}
+                                className={`px-2.5 py-1 rounded-full font-bold whitespace-nowrap border transition-colors ${
+                                  nearbyRadiusFilter === opt.value
+                                    ? 'bg-sky-600 text-white border-sky-600'
+                                    : 'bg-white text-neutral-600 border-neutral-200'
+                                }`}
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                            <button
+                              onClick={handleFindNearbyWishlist}
+                              className="ml-auto flex-shrink-0 flex items-center gap-1 text-sky-700 font-bold px-2 py-1"
+                            >
+                              <RefreshCw className={`w-3 h-3 ${isLocatingNearby ? 'animate-spin' : ''}`} />
+                              <span>現在地を更新</span>
+                            </button>
+                          </div>
+
+                          {nearbyWishlist.length === 0 ? (
+                            <div className="text-center text-[11px] text-neutral-400 py-6">
+                              この範囲に保存済みの行きたい場所はありません。
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {nearbyWishlist.map((wish) => {
+                                const cat = CATEGORIES[wish.category] || CATEGORIES.other;
+                                return (
+                                  <div key={wish.id} className="bg-white p-3 rounded-xl border border-sky-100 space-y-1.5">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border} flex-shrink-0`}>
+                                            <cat.icon className="w-2.5 h-2.5" />
+                                            {cat.label}
+                                          </span>
+                                          <span className="text-xs font-bold text-neutral-900 truncate">{wish.name}</span>
+                                        </div>
+                                        <p className="text-[11px] text-neutral-400 mt-0.5 truncate">{wish.address}</p>
+                                      </div>
+                                      <span className="text-[11px] font-black text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-100 whitespace-nowrap flex-shrink-0">
+                                        {formatDistance(wish.distanceMeters)}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center justify-between pt-1.5 border-t border-neutral-100 text-[11px]">
+                                      {wish.googleMapsUrl ? (
+                                        <a
+                                          href={wish.googleMapsUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-neutral-600 hover:text-neutral-900 font-semibold flex items-center gap-1"
+                                        >
+                                          <ExternalLink className="w-3 h-3 text-neutral-400" />
+                                          <span>Googleマップ</span>
+                                        </a>
+                                      ) : <span />}
+                                      <button
+                                        onClick={() => handleConvertWishlistToVisit(wish)}
+                                        className="bg-sky-500 hover:bg-sky-600 text-white px-2.5 py-1 rounded-lg font-bold flex items-center gap-1"
+                                      >
+                                        <Sparkles className="w-3 h-3" />
+                                        <span>訪問を記録</span>
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {nearbyError && (
+                    <div className="text-[11px] text-red-600 bg-red-50 border border-red-100 rounded-lg px-2.5 py-1.5">
+                      {nearbyError}
+                    </div>
+                  )}
+                </div>
+
+                {wishlistGroupedByArea.length === 0 ? (
                   <div className="py-16 text-center text-neutral-400 text-xs">
                     行きたい場所がまだありません。「行きたい場所を追加」から気になるお店を保存してみましょう。
                   </div>
@@ -1356,7 +1586,8 @@ function OdekakeLogMain() {
                       </div>
                     </div>
                   ))
-                )
+                )}
+                </>
               )}
             </div>
           )}
@@ -1987,11 +2218,48 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, 
   const [note, setNote] = useState(initialVisit?.note || '');
   const [category, setCategory] = useState(initialPlace?.category || 'food');
   const [selectedPlace, setSelectedPlace] = useState(initialPlace || null);
+  const [photos, setPhotos] = useState(initialVisit?.photos || []);
+  const [isProcessingPhotos, setIsProcessingPhotos] = useState(false);
+  const photoInputRef = useRef(null);
+
+  const MAX_PHOTOS = 5;
 
   // 場所が既に確定している（編集 / 再訪記録）場合は、誤って別の場所に
   // 差し替わらないよう検索欄をロックする。ロックを外すのは明示操作のみ。
   const isKnownExistingPlace = !!(initialPlace && places.some(p => p.id === initialPlace.id));
   const [isPlaceLocked, setIsPlaceLocked] = useState(isKnownExistingPlace);
+
+  const handlePhotoFilesSelected = async (e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = ''; // 同じファイルを選び直せるようにリセット
+    if (files.length === 0) return;
+
+    const remainingSlots = MAX_PHOTOS - photos.length;
+    if (remainingSlots <= 0) {
+      onToast?.(`写真は最大${MAX_PHOTOS}枚までです。`);
+      return;
+    }
+
+    setIsProcessingPhotos(true);
+    try {
+      const compressed = await Promise.all(
+        files.slice(0, remainingSlots).map(f => compressImageFile(f))
+      );
+      setPhotos(prev => [...prev, ...compressed]);
+      if (files.length > remainingSlots) {
+        onToast?.(`写真は最大${MAX_PHOTOS}枚までのため、一部のみ追加しました。`);
+      }
+    } catch (err) {
+      console.warn('Photo compression failed:', err);
+      onToast?.('写真の読み込みに失敗しました。');
+    } finally {
+      setIsProcessingPhotos(false);
+    }
+  };
+
+  const handleRemovePhoto = (index) => {
+    setPhotos(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -2008,7 +2276,8 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, 
       visitData: {
         date,
         rating: Number(rating),
-        note: note.trim()
+        note: note.trim(),
+        photos
       }
     });
   };
@@ -2103,6 +2372,52 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, places, 
               value={note}
               onChange={(e) => setNote(e.target.value)}
               className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+            />
+          </div>
+
+          {/* 写真（思い出ログとして、控えめなサムネイル表示） */}
+          <div>
+            <label className="flex items-center justify-between text-xs font-bold text-neutral-700 mb-1.5">
+              <span>写真</span>
+              <span className="text-[10px] text-neutral-400 font-normal">{photos.length}/{MAX_PHOTOS}枚</span>
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              {photos.map((src, idx) => (
+                <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-neutral-200 bg-neutral-100">
+                  <img src={src} alt={`写真${idx + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePhoto(idx)}
+                    className="absolute top-0.5 right-0.5 bg-black/55 text-white rounded-full w-4 h-4 flex items-center justify-center"
+                    title="この写真を削除"
+                  >
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                </div>
+              ))}
+              {photos.length < MAX_PHOTOS && (
+                <button
+                  type="button"
+                  onClick={() => photoInputRef.current?.click()}
+                  disabled={isProcessingPhotos}
+                  className="w-16 h-16 rounded-xl border border-dashed border-neutral-300 flex flex-col items-center justify-center text-neutral-400 hover:border-sky-400 hover:text-sky-500 transition-colors disabled:opacity-60"
+                >
+                  {isProcessingPhotos ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Camera className="w-4 h-4" />
+                  )}
+                  <span className="text-[9px] mt-0.5">追加</span>
+                </button>
+              )}
+            </div>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handlePhotoFilesSelected}
+              className="hidden"
             />
           </div>
 
@@ -2215,6 +2530,8 @@ function WishlistFormModal({ onClose, isMapsLoaded, onOpenApiKeyModal, onToast, 
 // 場所詳細モーダル
 // ==========================================
 function PlaceDetailModal({ place, onClose, onJumpToMap, onAddVisit, onDeletePlace }) {
+  const [lightboxSrc, setLightboxSrc] = useState(null);
+
   if (!place) return null;
   const cat = CATEGORIES[place.category] || CATEGORIES.other;
 
@@ -2283,6 +2600,20 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onAddVisit, onDeletePla
                       {v.note}
                     </p>
                   )}
+                  {v.photos && v.photos.length > 0 && (
+                    <div className="flex gap-1.5 mt-2 overflow-x-auto snap-x snap-mandatory pb-0.5">
+                      {v.photos.map((src, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setLightboxSrc(src)}
+                          className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-neutral-200 snap-center"
+                        >
+                          <img src={src} alt={`${formatDateWithWeekday(v.date)}の写真${idx + 1}`} className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -2299,6 +2630,27 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onAddVisit, onDeletePla
           </div>
         </div>
       </div>
+
+      {/* 写真の拡大表示（ライトボックス） */}
+      {lightboxSrc && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/85 flex items-center justify-center p-6"
+          onClick={() => setLightboxSrc(null)}
+        >
+          <button
+            onClick={() => setLightboxSrc(null)}
+            className="absolute top-4 right-4 text-white/90 hover:text-white p-2"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={lightboxSrc}
+            alt=""
+            className="max-w-full max-h-full rounded-xl object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
