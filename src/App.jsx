@@ -957,16 +957,7 @@ function OdekakeLogMain() {
   }, [wishlist, userLocation, nearbyRadiusFilter]);
 
   // 6. 削除ハンドラー
-  const handleDeleteVisit = (visitId) => {
-    setConfirmDialog({
-      title: '訪問記録の削除',
-      message: 'この訪問記録を削除してもよろしいですか？',
-      onConfirm: () => {
-        const next = visits.filter(v => v.id !== visitId);
-        saveVisits(next);
-      }
-    });
-  };
+  // 訪問記録単体の削除は誤操作防止のため廃止（場所そのものの削除のみ残す）。
 
   const handleDeletePlace = (placeId) => {
     setConfirmDialog({
@@ -1152,7 +1143,7 @@ function OdekakeLogMain() {
           <div className="flex items-center gap-2 lg:gap-6">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-sky-500 text-white flex items-center justify-center shadow-sm">
-                <MapPin className="w-[18px] h-[18px]" />
+                <MapPin className="w-[21px] h-[21px]" />
               </div>
               <div>
                 <h1 className="text-sm font-black text-neutral-900 tracking-tight">おでかけログ</h1>
@@ -1175,7 +1166,7 @@ function OdekakeLogMain() {
                     activeTab === key ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-[18px] h-[18px]" />
                   <span>{label}</span>
                 </button>
               ))}
@@ -1191,7 +1182,7 @@ function OdekakeLogMain() {
               }`}
               title="Google Maps APIキー設定"
             >
-              <Key className="w-[18px] h-[18px]" />
+              <Key className="w-[21px] h-[21px]" />
             </button>
 
             {/* 新規登録ボタン */}
@@ -1203,7 +1194,7 @@ function OdekakeLogMain() {
               }}
               className="flex items-center gap-1 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm transition-all active:scale-95"
             >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <Plus className="w-[18px] h-[18px] stroke-[2.5]" />
               <span>記録する</span>
             </button>
           </div>
@@ -1213,7 +1204,7 @@ function OdekakeLogMain() {
         {!apiKey && (
           <div className="bg-amber-50/90 border-b border-amber-200 px-4 lg:px-8 py-2 flex items-center justify-between text-xs text-amber-800">
             <div className="flex items-center gap-1.5 text-[11px]">
-              <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+              <AlertCircle className="w-[18px] h-[18px] text-amber-600 flex-shrink-0" />
               <span>APIキー未設定：デモ候補検索＆簡易マップで動作中</span>
             </div>
             <button
@@ -1232,7 +1223,7 @@ function OdekakeLogMain() {
           {(activeTab === 'logs' || activeTab === 'places') && (
             <div className="mb-3 space-y-2 lg:max-w-md">
               <div className="relative">
-                <Search className="w-[18px] h-[18px] absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                <Search className="w-[21px] h-[21px] absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                 <input
                   type="text"
                   placeholder="店名、住所、メモから検索..."
@@ -1245,7 +1236,7 @@ function OdekakeLogMain() {
                     onClick={() => setSearchQuery('')}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-[18px] h-[18px]" />
                   </button>
                 )}
               </div>
@@ -1271,7 +1262,7 @@ function OdekakeLogMain() {
                         : 'bg-white text-neutral-600 border-neutral-200'
                     }`}
                   >
-                    <cat.icon className="w-3.5 h-3.5" />
+                    <cat.icon className="w-4 h-4" />
                     <span>{cat.label}</span>
                   </button>
                 ))}
@@ -1289,7 +1280,7 @@ function OdekakeLogMain() {
                     logsGroupBy === 'month' ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500'
                   }`}
                 >
-                  <Calendar className="w-3.5 h-3.5" />
+                  <Calendar className="w-4 h-4" />
                   <span>月別</span>
                 </button>
                 <button
@@ -1298,7 +1289,7 @@ function OdekakeLogMain() {
                     logsGroupBy === 'trip' ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500'
                   }`}
                 >
-                  <Plane className="w-3.5 h-3.5" />
+                  <Plane className="w-4 h-4" />
                   <span>旅行別</span>
                 </button>
                 <button
@@ -1307,7 +1298,7 @@ function OdekakeLogMain() {
                     logsGroupBy === 'area' ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500'
                   }`}
                 >
-                  <MapPinned className="w-3.5 h-3.5" />
+                  <MapPinned className="w-4 h-4" />
                   <span>エリア別</span>
                 </button>
               </div>
@@ -1342,7 +1333,6 @@ function OdekakeLogMain() {
                               setEditingPlace(item.place);
                               setIsRecordModalOpen(true);
                             }}
-                            onDelete={() => handleDeleteVisit(item.id)}
                           />
                         ))}
                       </div>
@@ -1358,7 +1348,7 @@ function OdekakeLogMain() {
                     onClick={() => setIsTripFormModalOpen(true)}
                     className="flex items-center gap-1 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm transition-all active:scale-95 w-fit"
                   >
-                    <Plus className="w-4 h-4 stroke-[2.5]" />
+                    <Plus className="w-[18px] h-[18px] stroke-[2.5]" />
                     <span>旅行を作成</span>
                   </button>
 
@@ -1390,7 +1380,7 @@ function OdekakeLogMain() {
                   logsGroupedByArea.map((city) => (
                     <div key={city.cityLabel} className="space-y-2">
                       <div className="flex items-center gap-1.5 text-xs font-black text-neutral-700 px-1">
-                        <MapPinned className="w-4 h-4 text-sky-500" />
+                        <MapPinned className="w-[18px] h-[18px] text-sky-500" />
                         <span>{city.cityLabel}</span>
                         <span className="text-neutral-400 font-normal">（{city.total}件）</span>
                       </div>
@@ -1439,7 +1429,7 @@ function OdekakeLogMain() {
                       placesSubView === 'visited' ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500'
                     }`}
                   >
-                    <Compass className="w-3.5 h-3.5" />
+                    <Compass className="w-4 h-4" />
                     <span>訪問済み ({placesGroupedByArea.reduce((n, g) => n + g.items.length, 0)})</span>
                   </button>
                   <button
@@ -1448,7 +1438,7 @@ function OdekakeLogMain() {
                       placesSubView === 'wishlist' ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500'
                     }`}
                   >
-                    <Bookmark className="w-3.5 h-3.5" />
+                    <Bookmark className="w-4 h-4" />
                     <span>行きたい ({wishlist.length})</span>
                   </button>
                 </div>
@@ -1458,7 +1448,7 @@ function OdekakeLogMain() {
                     onClick={() => setIsWishlistModalOpen(true)}
                     className="flex items-center gap-1 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm transition-all active:scale-95"
                   >
-                    <Plus className="w-4 h-4 stroke-[2.5]" />
+                    <Plus className="w-[18px] h-[18px] stroke-[2.5]" />
                     <span>行きたい場所を追加</span>
                   </button>
                 )}
@@ -1473,7 +1463,7 @@ function OdekakeLogMain() {
                   placesGroupedByArea.map(({ area, items }) => (
                     <div key={area} className="space-y-2.5">
                       <div className="flex items-center gap-1.5 text-xs font-black text-neutral-700 px-1">
-                        <Compass className="w-4 h-4 text-sky-500" />
+                        <Compass className="w-[18px] h-[18px] text-sky-500" />
                         <span>{area}</span>
                         <span className="text-neutral-400 font-normal">({items.length}箇所)</span>
                       </div>
@@ -1493,7 +1483,7 @@ function OdekakeLogMain() {
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0 flex-1">
                                 <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
-                                  <cat.icon className="w-3.5 h-3.5" />
+                                  <cat.icon className="w-4 h-4" />
                                   {cat.label}
                                 </span>
                                 <h3 className="text-sm font-bold text-neutral-900 leading-snug mt-1.5">
@@ -1508,14 +1498,14 @@ function OdekakeLogMain() {
                                 <span className="text-xs font-black text-sky-700 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-100 whitespace-nowrap">
                                   計 {place.visitCount} 回
                                 </span>
-                                <ChevronRight className="w-[18px] h-[18px] text-neutral-300" />
+                                <ChevronRight className="w-[21px] h-[21px] text-neutral-300" />
                               </div>
                             </div>
 
                             {/* 集計サマリー（詳細な訪問履歴は「記録」タブかカードをタップして確認） */}
                             <div className="mt-3.5 flex items-center justify-between text-xs bg-neutral-50 p-2.5 rounded-xl border border-neutral-150">
                               <span className="font-medium text-neutral-600 flex items-center gap-1">
-                                <Clock className="w-4 h-4 text-sky-500" />
+                                <Clock className="w-[18px] h-[18px] text-sky-500" />
                                 最後に訪れた日:
                               </span>
                               <div className="text-right">
@@ -1542,7 +1532,7 @@ function OdekakeLogMain() {
                                   rel="noopener noreferrer"
                                   className="text-neutral-600 hover:text-neutral-900 font-semibold flex items-center gap-1 text-[11px]"
                                 >
-                                  <ExternalLink className="w-3.5 h-3.5 text-neutral-400" />
+                                  <ExternalLink className="w-4 h-4 text-neutral-400" />
                                   <span>Googleマップ</span>
                                 </a>
                               )}
@@ -1551,7 +1541,7 @@ function OdekakeLogMain() {
                                 className="text-neutral-400 hover:text-sky-600 p-1 flex-shrink-0"
                                 title="マップでピンを見る"
                               >
-                                <MapIcon className="w-4 h-4" />
+                                <MapIcon className="w-[18px] h-[18px]" />
                               </button>
                               <button
                                 onClick={() => {
@@ -1578,7 +1568,7 @@ function OdekakeLogMain() {
                   {!userLocation ? (
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-1.5 text-xs text-sky-900 font-bold">
-                        <Navigation className="w-4 h-4 text-sky-600" />
+                        <Navigation className="w-[18px] h-[18px] text-sky-600" />
                         <span>近くの保存済みスポットを確認</span>
                       </div>
                       <button
@@ -1586,7 +1576,7 @@ function OdekakeLogMain() {
                         disabled={isLocatingNearby}
                         className="bg-sky-500 hover:bg-sky-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-full disabled:opacity-60 flex items-center gap-1"
                       >
-                        {isLocatingNearby && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                        {isLocatingNearby && <RefreshCw className="w-4 h-4 animate-spin" />}
                         <span>{isLocatingNearby ? '取得中...' : '現在地から探す'}</span>
                       </button>
                     </div>
@@ -1598,10 +1588,10 @@ function OdekakeLogMain() {
                         className="w-full flex items-center justify-between gap-2 text-left"
                       >
                         <span className="flex items-center gap-1.5 text-xs font-bold text-sky-900">
-                          <Navigation className="w-4 h-4 text-sky-600 flex-shrink-0" />
+                          <Navigation className="w-[18px] h-[18px] text-sky-600 flex-shrink-0" />
                           <span>近くに保存済みの場所が {nearbyWishlist.length} 件あります</span>
                         </span>
-                        <ChevronDown className={`w-[18px] h-[18px] text-sky-600 flex-shrink-0 transition-transform ${isNearbyPanelOpen ? 'rotate-180' : ''}`} />
+                        <ChevronDown className={`w-[21px] h-[21px] text-sky-600 flex-shrink-0 transition-transform ${isNearbyPanelOpen ? 'rotate-180' : ''}`} />
                       </button>
 
                       {isNearbyPanelOpen && (
@@ -1629,7 +1619,7 @@ function OdekakeLogMain() {
                               onClick={handleFindNearbyWishlist}
                               className="ml-auto flex-shrink-0 flex items-center gap-1 text-sky-700 font-bold px-2 py-1"
                             >
-                              <RefreshCw className={`w-3.5 h-3.5 ${isLocatingNearby ? 'animate-spin' : ''}`} />
+                              <RefreshCw className={`w-4 h-4 ${isLocatingNearby ? 'animate-spin' : ''}`} />
                               <span>現在地を更新</span>
                             </button>
                           </div>
@@ -1648,7 +1638,7 @@ function OdekakeLogMain() {
                                       <div className="min-w-0">
                                         <div className="flex items-center gap-1.5">
                                           <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border} flex-shrink-0`}>
-                                            <cat.icon className="w-3 h-3" />
+                                            <cat.icon className="w-3.5 h-3.5" />
                                             {cat.label}
                                           </span>
                                           <span className="text-xs font-bold text-neutral-900 truncate">{wish.name}</span>
@@ -1667,7 +1657,7 @@ function OdekakeLogMain() {
                                           rel="noopener noreferrer"
                                           className="text-neutral-600 hover:text-neutral-900 font-semibold flex items-center gap-1"
                                         >
-                                          <ExternalLink className="w-3.5 h-3.5 text-neutral-400" />
+                                          <ExternalLink className="w-4 h-4 text-neutral-400" />
                                           <span>Googleマップ</span>
                                         </a>
                                       ) : <span />}
@@ -1675,7 +1665,7 @@ function OdekakeLogMain() {
                                         onClick={() => handleConvertWishlistToVisit(wish)}
                                         className="bg-sky-500 hover:bg-sky-600 text-white px-2.5 py-1 rounded-lg font-bold flex items-center gap-1"
                                       >
-                                        <Sparkles className="w-3.5 h-3.5" />
+                                        <Sparkles className="w-4 h-4" />
                                         <span>訪問を記録</span>
                                       </button>
                                     </div>
@@ -1704,7 +1694,7 @@ function OdekakeLogMain() {
                   wishlistGroupedByArea.map(({ area, items }) => (
                     <div key={area} className="space-y-2.5">
                       <div className="flex items-center gap-1.5 text-xs font-black text-neutral-700 px-1">
-                        <Compass className="w-4 h-4 text-sky-500" />
+                        <Compass className="w-[18px] h-[18px] text-sky-500" />
                         <span>{area}</span>
                         <span className="text-neutral-400 font-normal">({items.length}箇所)</span>
                       </div>
@@ -1721,7 +1711,7 @@ function OdekakeLogMain() {
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1.5">
                                   <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border} flex-shrink-0`}>
-                                    <cat.icon className="w-3.5 h-3.5" />
+                                    <cat.icon className="w-4 h-4" />
                                     {cat.label}
                                   </span>
                                   <h3 className="text-sm font-bold text-neutral-900 truncate">
@@ -1732,7 +1722,7 @@ function OdekakeLogMain() {
                                   {wish.address || '住所未登録'}
                                 </p>
                               </div>
-                              <Bookmark className="w-[18px] h-[18px] text-sky-400 flex-shrink-0" fill="currentColor" />
+                              <Bookmark className="w-[21px] h-[21px] text-sky-400 flex-shrink-0" fill="currentColor" />
                             </div>
 
                             {wish.memo && (
@@ -1750,7 +1740,7 @@ function OdekakeLogMain() {
                                     rel="noopener noreferrer"
                                     className="text-neutral-600 hover:text-neutral-900 font-semibold flex items-center gap-1 text-[11px]"
                                   >
-                                    <ExternalLink className="w-3.5 h-3.5 text-neutral-400" />
+                                    <ExternalLink className="w-4 h-4 text-neutral-400" />
                                     <span>Googleマップ</span>
                                   </a>
                                 )}
@@ -1759,7 +1749,7 @@ function OdekakeLogMain() {
                                   className="text-neutral-400 hover:text-red-600 p-1"
                                   title="行きたい場所から削除"
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <Trash2 className="w-[18px] h-[18px]" />
                                 </button>
                               </div>
 
@@ -1767,7 +1757,7 @@ function OdekakeLogMain() {
                                 onClick={() => handleConvertWishlistToVisit(wish)}
                                 className="bg-sky-500 hover:bg-sky-600 text-white px-3 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1"
                               >
-                                <Sparkles className="w-3.5 h-3.5" />
+                                <Sparkles className="w-4 h-4" />
                                 <span>行った！を記録</span>
                               </button>
                             </div>
@@ -1821,41 +1811,41 @@ function OdekakeLogMain() {
         <nav className="lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-neutral-200 px-2 py-2 flex items-center justify-between z-40 shadow-lg">
           <button
             onClick={() => setActiveTab('logs')}
-            className={`flex-1 flex flex-col items-center gap-1 transition-colors ${
+            className={`flex-1 flex flex-col items-center gap-1.5 transition-colors ${
               activeTab === 'logs' ? 'text-sky-600 font-bold' : 'text-neutral-400 hover:text-neutral-600 font-medium'
             }`}
           >
-            <Calendar className="w-[21px] h-[21px]" />
+            <Calendar className="w-[24px] h-[24px]" />
             <span className="text-[10px]">記録</span>
           </button>
 
           <button
             onClick={() => setActiveTab('calendar')}
-            className={`flex-1 flex flex-col items-center gap-1 transition-colors ${
+            className={`flex-1 flex flex-col items-center gap-1.5 transition-colors ${
               activeTab === 'calendar' ? 'text-sky-600 font-bold' : 'text-neutral-400 hover:text-neutral-600 font-medium'
             }`}
           >
-            <CalendarDays className="w-[21px] h-[21px]" />
+            <CalendarDays className="w-[24px] h-[24px]" />
             <span className="text-[10px]">カレンダー</span>
           </button>
 
           <button
             onClick={() => setActiveTab('places')}
-            className={`flex-1 flex flex-col items-center gap-1 transition-colors ${
+            className={`flex-1 flex flex-col items-center gap-1.5 transition-colors ${
               activeTab === 'places' ? 'text-sky-600 font-bold' : 'text-neutral-400 hover:text-neutral-600 font-medium'
             }`}
           >
-            <Clock className="w-[21px] h-[21px]" />
+            <Clock className="w-[24px] h-[24px]" />
             <span className="text-[10px]">場所</span>
           </button>
 
           <button
             onClick={() => setActiveTab('map')}
-            className={`flex-1 flex flex-col items-center gap-1 transition-colors ${
+            className={`flex-1 flex flex-col items-center gap-1.5 transition-colors ${
               activeTab === 'map' ? 'text-sky-600 font-bold' : 'text-neutral-400 hover:text-neutral-600 font-medium'
             }`}
           >
-            <MapIcon className="w-[21px] h-[21px]" />
+            <MapIcon className="w-[24px] h-[24px]" />
             <span className="text-[10px]">マップ</span>
           </button>
         </nav>
@@ -1988,7 +1978,7 @@ function OdekakeLogMain() {
                       onClick={() => handleDeleteTrip(detailTrip.id)}
                       className="text-red-500 hover:text-red-700 flex items-center gap-1 text-[11px] font-semibold"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-[18px] h-[18px]" />
                       <span>旅行を削除</span>
                     </button>
                   </div>
@@ -2009,7 +1999,6 @@ function OdekakeLogMain() {
                 setEditingPlace(item.place);
                 setIsRecordModalOpen(true);
               }}
-              onDeleteVisit={handleDeleteVisit}
             />
           );
         })()}
@@ -2054,7 +2043,6 @@ function OdekakeLogMain() {
                 setEditingPlace(item.place);
                 setIsRecordModalOpen(true);
               }}
-              onDeleteVisit={handleDeleteVisit}
             />
           );
         })()}
@@ -2111,11 +2099,11 @@ function OdekakeLogMain() {
             <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-3">
               <div className="flex items-center justify-between border-b border-neutral-150 pb-2">
                 <div className="flex items-center gap-1.5 text-neutral-900 font-bold text-sm">
-                  <Key className="w-[18px] h-[18px] text-sky-500" />
+                  <Key className="w-[21px] h-[21px] text-sky-500" />
                   <span>Google Maps APIキー</span>
                 </div>
                 <button onClick={() => setShowApiKeyModal(false)} className="text-neutral-400 p-1">
-                  <X className="w-[18px] h-[18px]" />
+                  <X className="w-[21px] h-[21px]" />
                 </button>
               </div>
 
@@ -2161,7 +2149,7 @@ function OdekakeLogMain() {
                     onClick={handleExportData}
                     className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
                   >
-                    <Download className="w-4 h-4" />
+                    <Download className="w-[18px] h-[18px]" />
                     <span>エクスポート</span>
                   </button>
                   <button
@@ -2169,7 +2157,7 @@ function OdekakeLogMain() {
                     onClick={() => importFileInputRef.current?.click()}
                     className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
                   >
-                    <Upload className="w-4 h-4" />
+                    <Upload className="w-[18px] h-[18px]" />
                     <span>インポート</span>
                   </button>
                   <input
@@ -2443,7 +2431,7 @@ function PlaceSearchField({
         <>
           <div className="flex items-center justify-between">
             <label className="block text-xs font-black text-sky-950 flex items-center gap-1.5">
-              <Search className="w-4 h-4 text-sky-600" />
+              <Search className="w-[18px] h-[18px] text-sky-600" />
               <span>お店・場所を検索</span>
               <span className="text-[10px] bg-sky-500 text-white px-1.5 py-0.2 rounded font-bold">必須</span>
             </label>
@@ -2510,7 +2498,7 @@ function PlaceSearchField({
                     className="text-[10px] text-sky-600 hover:underline flex items-center gap-0.5"
                   >
                     <span>Googleマップで確認</span>
-                    <ExternalLink className="w-3 h-3" />
+                    <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                 )}
               </div>
@@ -2600,24 +2588,25 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3">
+      <div className="w-full max-w-md bg-white rounded-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
         {/* モーダルヘッダー */}
-        <div className="px-5 py-3.5 border-b border-neutral-150 flex items-center justify-between">
+        <div className="px-5 py-3 border-b border-neutral-150 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
-              <MapPin className="w-[18px] h-[18px]" />
+              <MapPin className="w-[21px] h-[21px]" />
             </div>
             <h3 className="text-sm font-bold text-neutral-900">
               {initialVisit ? '訪問記録の編集' : '行った場所を記録'}
             </h3>
           </div>
           <button onClick={onClose} className="p-1.5 -mr-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg">
-            <X className="w-[22px] h-[22px]" />
+            <X className="w-[25px] h-[25px]" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-4 flex-1">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+        <div className="px-5 py-3.5 overflow-y-auto space-y-3 flex-1 min-h-0">
 
           <PlaceSearchField
             isMapsLoaded={isMapsLoaded}
@@ -2635,7 +2624,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
           {/* 訪問日 */}
           <div>
             <label className="block text-xs font-bold text-neutral-700 mb-1 flex items-center gap-1">
-              <Calendar className="w-4 h-4 text-sky-500" />
+              <Calendar className="w-[18px] h-[18px] text-sky-500" />
               <span>訪問日</span>
             </label>
             <input
@@ -2643,7 +2632,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+              className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm px-3 py-1.5 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
             />
           </div>
 
@@ -2655,13 +2644,13 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm pl-2.5 pr-7 py-2 text-xs text-neutral-800 focus:outline-none"
+                  className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm pl-2.5 pr-7 py-1.5 text-xs text-neutral-800 focus:outline-none"
                 >
                   {Object.entries(CATEGORIES).map(([k, cat]) => (
                     <option key={k} value={k}>{cat.label}</option>
                   ))}
                 </select>
-                <ChevronDown className="w-4 h-4 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <ChevronDown className="w-[18px] h-[18px] text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
 
@@ -2671,7 +2660,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
                 <select
                   value={rating}
                   onChange={(e) => setRating(Number(e.target.value))}
-                  className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm pl-2.5 pr-7 py-2 text-xs text-neutral-800 focus:outline-none"
+                  className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm pl-2.5 pr-7 py-1.5 text-xs text-neutral-800 focus:outline-none"
                 >
                   <option value={5}>⭐⭐⭐⭐⭐ (5点)</option>
                   <option value={4}>⭐⭐⭐⭐ (4点)</option>
@@ -2679,7 +2668,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
                   <option value={2}>⭐⭐ (2点)</option>
                   <option value={1}>⭐ (1点)</option>
                 </select>
-                <ChevronDown className="w-4 h-4 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <ChevronDown className="w-[18px] h-[18px] text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
           </div>
@@ -2690,23 +2679,23 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
               訪問時のメモ・感想
             </label>
             <textarea
-              rows={3}
+              rows={2}
               placeholder="おすすめの料理、店内の雰囲気、混雑具合など..."
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+              className="w-full bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm px-3 py-1.5 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
             />
           </div>
 
           {/* 写真（思い出ログとして、控えめなサムネイル表示） */}
           <div>
-            <label className="flex items-center justify-between text-xs font-bold text-neutral-700 mb-1.5">
+            <label className="flex items-center justify-between text-xs font-bold text-neutral-700 mb-1">
               <span>写真</span>
               <span className="text-[10px] text-neutral-400 font-normal">{photos.length}/{MAX_PHOTOS}枚</span>
             </label>
             <div className="flex gap-2 flex-wrap">
               {photos.map((src, idx) => (
-                <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-neutral-200 bg-neutral-100">
+                <div key={idx} className="relative w-12 h-12 rounded-lg overflow-hidden border border-neutral-200 bg-neutral-100">
                   <img src={src} alt={`写真${idx + 1}`} className="w-full h-full object-cover" />
                   <button
                     type="button"
@@ -2723,14 +2712,14 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
                   type="button"
                   onClick={() => photoInputRef.current?.click()}
                   disabled={isProcessingPhotos}
-                  className="w-16 h-16 rounded-xl border border-dashed border-neutral-300 flex flex-col items-center justify-center text-neutral-400 hover:border-sky-400 hover:text-sky-500 transition-colors disabled:opacity-60"
+                  className="w-12 h-12 rounded-lg border border-dashed border-neutral-300 flex flex-col items-center justify-center text-neutral-400 hover:border-sky-400 hover:text-sky-500 transition-colors disabled:opacity-60"
                 >
                   {isProcessingPhotos ? (
                     <RefreshCw className="w-[18px] h-[18px] animate-spin" />
                   ) : (
                     <Camera className="w-[18px] h-[18px]" />
                   )}
-                  <span className="text-[9px] mt-0.5">追加</span>
+                  <span className="text-[8px] mt-0.5">追加</span>
                 </button>
               )}
             </div>
@@ -2752,26 +2741,28 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
                 <select
                   value={tripId}
                   onChange={(e) => setTripId(e.target.value)}
-                  className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm pl-2.5 pr-7 py-2 text-xs text-neutral-800 focus:outline-none"
+                  className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm pl-2.5 pr-7 py-1.5 text-xs text-neutral-800 focus:outline-none"
                 >
                   <option value="">なし（通常の記録）</option>
                   {trips.map(t => (
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>
-                <ChevronDown className="w-4 h-4 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <ChevronDown className="w-[18px] h-[18px] text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
           )}
+        </div>
 
-          <div className="pt-2">
-            <button
-              type="submit"
-              className="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 rounded-2xl shadow-md transition-all active:scale-[0.98] text-xs"
-            >
-              {initialVisit ? '記録を更新する' : 'この内容で記録する'}
-            </button>
-          </div>
+        {/* 保存ボタン：入力欄のスクロールに関わらず常に下部に固定表示 */}
+        <div className="px-5 py-3 border-t border-neutral-150 flex-shrink-0">
+          <button
+            type="submit"
+            className="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-2xl shadow-md transition-all active:scale-[0.98] text-xs"
+          >
+            {initialVisit ? '記録を更新する' : 'この内容で記録する'}
+          </button>
+        </div>
         </form>
       </div>
     </div>
@@ -2807,12 +2798,12 @@ function WishlistFormModal({ onClose, isMapsLoaded, onOpenApiKeyModal, onToast, 
         <div className="px-5 py-3.5 border-b border-neutral-150 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
-              <Bookmark className="w-[18px] h-[18px]" />
+              <Bookmark className="w-[21px] h-[21px]" />
             </div>
             <h3 className="text-sm font-bold text-neutral-900">行きたい場所を追加</h3>
           </div>
           <button onClick={onClose} className="p-1.5 -mr-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg">
-            <X className="w-[22px] h-[22px]" />
+            <X className="w-[25px] h-[25px]" />
           </button>
         </div>
 
@@ -2841,7 +2832,7 @@ function WishlistFormModal({ onClose, isMapsLoaded, onOpenApiKeyModal, onToast, 
                   <option key={k} value={k}>{cat.label}</option>
                 ))}
               </select>
-              <ChevronDown className="w-4 h-4 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-[18px] h-[18px] text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
 
@@ -2875,7 +2866,7 @@ function WishlistFormModal({ onClose, isMapsLoaded, onOpenApiKeyModal, onToast, 
 // ==========================================
 // 訪問記録カード（記録タブ・旅行詳細・エリア詳細で共通利用）
 // ==========================================
-function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit, onDelete }) {
+function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit }) {
   const cat = CATEGORIES[item.place.category] || CATEGORIES.other;
   const formattedDate = formatDateWithWeekday(item.date);
   const relativeDays = getRelativeDays(item.date);
@@ -2888,7 +2879,7 @@ function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit, onDelete }) {
       {/* 訪問日ヘッダー */}
       <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
         <div className="flex items-center gap-1.5">
-          <Calendar className="w-4 h-4 text-sky-500" />
+          <Calendar className="w-[18px] h-[18px] text-sky-500" />
           <span className="text-xs font-bold text-neutral-800">
             {formattedDate}
           </span>
@@ -2903,7 +2894,7 @@ function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit, onDelete }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border} flex-shrink-0`}>
-              <cat.icon className="w-3.5 h-3.5" />
+              <cat.icon className="w-4 h-4" />
               {cat.label}
             </span>
             <h2 className="text-sm font-bold text-neutral-900 truncate">
@@ -2944,7 +2935,7 @@ function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit, onDelete }) {
           onClick={onJumpToMap}
           className="text-sky-600 hover:text-sky-700 font-semibold flex items-center gap-1"
         >
-          <MapIcon className="w-4 h-4" />
+          <MapIcon className="w-[18px] h-[18px]" />
           <span>マップで見る</span>
         </button>
 
@@ -2954,15 +2945,8 @@ function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit, onDelete }) {
             className="text-neutral-500 hover:text-neutral-800 p-1 flex items-center gap-0.5"
             title="記録を編集"
           >
-            <Edit2 className="w-4 h-4" />
+            <Edit2 className="w-[18px] h-[18px]" />
             <span>編集</span>
-          </button>
-          <button
-            onClick={onDelete}
-            className="text-neutral-400 hover:text-red-600 p-1"
-            title="記録を削除"
-          >
-            <Trash2 className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -2993,21 +2977,21 @@ function TripSummaryCard({ summary, onOpen }) {
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-1.5">
-              <Plane className="w-4 h-4 text-sky-500 flex-shrink-0" />
+              <Plane className="w-[18px] h-[18px] text-sky-500 flex-shrink-0" />
               <span className="truncate">{trip.name}</span>
             </h3>
             <p className="text-[11px] text-neutral-400 mt-1">{period}</p>
           </div>
-          <ChevronRight className="w-[18px] h-[18px] text-neutral-300 flex-shrink-0" />
+          <ChevronRight className="w-[21px] h-[21px] text-neutral-300 flex-shrink-0" />
         </div>
 
         <div className="mt-2.5 flex items-center gap-3 text-[11px] text-neutral-600">
           <span className="flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5 text-sky-400" />
+            <Calendar className="w-4 h-4 text-sky-400" />
             {visitCount}件の訪問
           </span>
           <span className="flex items-center gap-1">
-            <MapPin className="w-3.5 h-3.5 text-sky-400" />
+            <MapPin className="w-4 h-4 text-sky-400" />
             {placeCount}箇所
           </span>
         </div>
@@ -3018,7 +3002,7 @@ function TripSummaryCard({ summary, onOpen }) {
               const cat = CATEGORIES[catKey] || CATEGORIES.other;
               return (
                 <span key={catKey} className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
-                  <cat.icon className="w-3 h-3" />
+                  <cat.icon className="w-3.5 h-3.5" />
                   {cat.label}
                 </span>
               );
@@ -3059,7 +3043,7 @@ function AreaSummaryCard({ area, onOpen }) {
           <span className="text-xs font-black text-sky-700 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-100 whitespace-nowrap">
             {area.items.length}件
           </span>
-          <ChevronRight className="w-[18px] h-[18px] text-neutral-300" />
+          <ChevronRight className="w-[21px] h-[21px] text-neutral-300" />
         </div>
       </div>
       {categories.length > 0 && (
@@ -3068,7 +3052,7 @@ function AreaSummaryCard({ area, onOpen }) {
             const cat = CATEGORIES[catKey] || CATEGORIES.other;
             return (
               <span key={catKey} className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
-                <cat.icon className="w-3 h-3" />
+                <cat.icon className="w-3.5 h-3.5" />
                 {cat.label}
               </span>
             );
@@ -3128,7 +3112,7 @@ function CalendarViewComponent({ calendarMonth, onMonthChange, visitsByDate, sel
             className="p-1.5 rounded-lg text-neutral-500 hover:bg-neutral-100"
             aria-label="前の月"
           >
-            <ChevronLeft className="w-[18px] h-[18px]" />
+            <ChevronLeft className="w-[21px] h-[21px]" />
           </button>
           <button onClick={goToday} className="text-sm font-black text-neutral-900 px-2 py-0.5 rounded-lg hover:bg-neutral-50">
             {year}年{month + 1}月
@@ -3138,7 +3122,7 @@ function CalendarViewComponent({ calendarMonth, onMonthChange, visitsByDate, sel
             className="p-1.5 rounded-lg text-neutral-500 hover:bg-neutral-100"
             aria-label="次の月"
           >
-            <ChevronRight className="w-[18px] h-[18px]" />
+            <ChevronRight className="w-[21px] h-[21px]" />
           </button>
         </div>
 
@@ -3208,7 +3192,7 @@ function CalendarViewComponent({ calendarMonth, onMonthChange, visitsByDate, sel
                   onClick={() => onAddForDate(selectedDate)}
                   className="inline-flex items-center gap-1 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-4 py-2 rounded-full shadow-sm transition-all active:scale-95"
                 >
-                  <Plus className="w-4 h-4 stroke-[2.5]" />
+                  <Plus className="w-[18px] h-[18px] stroke-[2.5]" />
                   <span>この日に記録する</span>
                 </button>
               </div>
@@ -3247,12 +3231,12 @@ function CalendarVisitRow({ item, onClick }) {
         <img src={item.photos[0]} alt="" className="w-11 h-11 rounded-lg object-cover flex-shrink-0 border border-neutral-200" />
       ) : (
         <div className={`w-11 h-11 rounded-lg flex-shrink-0 flex items-center justify-center ${cat.bg}`}>
-          <cat.icon className={`w-[22px] h-[22px] ${cat.text}`} />
+          <cat.icon className={`w-[25px] h-[25px] ${cat.text}`} />
         </div>
       )}
       <div className="min-w-0 flex-1">
         <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
-          <cat.icon className="w-3 h-3" />
+          <cat.icon className="w-3.5 h-3.5" />
           {cat.label}
         </span>
         <h4 className="text-xs font-bold text-neutral-900 mt-1 truncate">{item.place.name}</h4>
@@ -3261,7 +3245,7 @@ function CalendarVisitRow({ item, onClick }) {
           <p className="text-[11px] text-neutral-500 mt-0.5 truncate">{item.note}</p>
         )}
       </div>
-      <ChevronRight className="w-[18px] h-[18px] text-neutral-300 flex-shrink-0 mt-1" />
+      <ChevronRight className="w-[21px] h-[21px] text-neutral-300 flex-shrink-0 mt-1" />
     </div>
   );
 }
@@ -3269,14 +3253,14 @@ function CalendarVisitRow({ item, onClick }) {
 // ==========================================
 // 旅行・エリアの詳細一覧モーダル（共通）
 // ==========================================
-function DetailListModal({ icon: Icon, title, subtitle, headerExtra, items, onClose, onOpenPlace, onJumpToMap, onEditVisit, onDeleteVisit }) {
+function DetailListModal({ icon: Icon, title, subtitle, headerExtra, items, onClose, onOpenPlace, onJumpToMap, onEditVisit }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
       <div className="w-full max-w-md bg-white rounded-3xl max-h-[82vh] flex flex-col shadow-2xl overflow-hidden">
         <div className="px-5 py-3.5 border-b border-neutral-150 flex items-start justify-between gap-2">
           <div className="flex items-start gap-2 min-w-0">
             <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <Icon className="w-[18px] h-[18px]" />
+              <Icon className="w-[21px] h-[21px]" />
             </div>
             <div className="min-w-0">
               <h3 className="text-sm font-bold text-neutral-900 truncate">{title}</h3>
@@ -3284,7 +3268,7 @@ function DetailListModal({ icon: Icon, title, subtitle, headerExtra, items, onCl
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 -mr-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg flex-shrink-0">
-            <X className="w-[22px] h-[22px]" />
+            <X className="w-[25px] h-[25px]" />
           </button>
         </div>
 
@@ -3302,7 +3286,6 @@ function DetailListModal({ icon: Icon, title, subtitle, headerExtra, items, onCl
                   onOpenDetail={() => onOpenPlace(item.place)}
                   onJumpToMap={() => onJumpToMap(item.place)}
                   onEdit={() => onEditVisit(item)}
-                  onDelete={() => onDeleteVisit(item.id)}
                 />
               ))
             )}
@@ -3335,12 +3318,12 @@ function TripFormModal({ onClose, onSave }) {
         <div className="px-5 py-3.5 border-b border-neutral-150 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
-              <Plane className="w-[18px] h-[18px]" />
+              <Plane className="w-[21px] h-[21px]" />
             </div>
             <h3 className="text-sm font-bold text-neutral-900">旅行を作成</h3>
           </div>
           <button onClick={onClose} className="p-1.5 -mr-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg">
-            <X className="w-[22px] h-[22px]" />
+            <X className="w-[25px] h-[25px]" />
           </button>
         </div>
 
@@ -3421,22 +3404,23 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onAddVisit, onDeletePla
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
       <div className="w-full max-w-md bg-white rounded-3xl max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-neutral-150 flex items-center justify-between">
-          <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
-            <cat.icon className="w-3.5 h-3.5" />
-            {cat.label}
-          </span>
-          <button onClick={onClose} className="p-1.5 -mr-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg">
-            <X className="w-[22px] h-[22px]" />
-          </button>
+        {/* ヘッダー：カテゴリ／×／店名／住所を1つの塊にまとめ、
+            余計な余白や区切り線で間延びさせない */}
+        <div className="px-5 pt-4 pb-3">
+          <div className="flex items-start justify-between gap-2">
+            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
+              <cat.icon className="w-4 h-4" />
+              {cat.label}
+            </span>
+            <button onClick={onClose} className="p-1.5 -mr-1.5 -mt-1 text-neutral-400 hover:text-neutral-600 rounded-lg flex-shrink-0">
+              <X className="w-[25px] h-[25px]" />
+            </button>
+          </div>
+          <h3 className="text-lg font-black text-neutral-900 leading-tight mt-1.5">{place.name}</h3>
+          <p className="text-xs text-neutral-500 mt-1">{place.address}</p>
         </div>
 
-        <div className="p-5 overflow-y-auto space-y-4 flex-1">
-          <div>
-            <h3 className="text-lg font-black text-neutral-900 leading-tight">{place.name}</h3>
-            <p className="text-xs text-neutral-500 mt-1">{place.address}</p>
-          </div>
-
+        <div className="px-5 pb-5 overflow-y-auto space-y-4 flex-1">
           <div className="flex gap-2">
             {place.googleMapsUrl && (
               <a
@@ -3445,7 +3429,7 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onAddVisit, onDeletePla
                 rel="noopener noreferrer"
                 className="flex-1 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-1.5 transition-colors"
               >
-                <ExternalLink className="w-4 h-4" />
+                <ExternalLink className="w-[18px] h-[18px]" />
                 <span>Googleマップで開く</span>
               </a>
             )}
@@ -3453,7 +3437,7 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onAddVisit, onDeletePla
               onClick={onJumpToMap}
               className="flex-1 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-1.5 transition-colors"
             >
-              <MapIcon className="w-4 h-4" />
+              <MapIcon className="w-[18px] h-[18px]" />
               <span>マップで見る</span>
             </button>
           </div>
@@ -3507,7 +3491,7 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onAddVisit, onDeletePla
               onClick={onDeletePlace}
               className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 transition-colors"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-[18px] h-[18px]" />
               <span>この場所と全記録を削除</span>
             </button>
           </div>
@@ -3524,7 +3508,7 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onAddVisit, onDeletePla
             onClick={() => setLightboxSrc(null)}
             className="absolute top-4 right-4 text-white/90 hover:text-white p-2"
           >
-            <X className="w-[26px] h-[26px]" />
+            <X className="w-[29px] h-[29px]" />
           </button>
           <img
             src={lightboxSrc}
@@ -3736,7 +3720,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
                 mapViewMode === 'visited' ? 'bg-sky-600 text-white' : 'text-neutral-500'
               }`}
             >
-              <Compass className="w-4 h-4" />
+              <Compass className="w-[18px] h-[18px]" />
               <span>行った ({places.length})</span>
             </button>
             <button
@@ -3745,14 +3729,14 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
                 mapViewMode === 'wishlist' ? 'bg-sky-600 text-white' : 'text-neutral-500'
               }`}
             >
-              <Bookmark className="w-4 h-4" />
+              <Bookmark className="w-[18px] h-[18px]" />
               <span>行きたい ({wishlist.length})</span>
             </button>
           </div>
         </div>
 
         <div className="pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-md border border-neutral-200 flex items-center px-3 py-1.5">
-          <Search className="w-4 h-4 text-neutral-400 mr-2" />
+          <Search className="w-[18px] h-[18px] text-neutral-400 mr-2" />
           <input
             type="text"
             placeholder="マップ上の場所を検索..."
@@ -3762,7 +3746,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
           />
           {mapSearch && (
             <button onClick={() => setMapSearch('')} className="text-neutral-400">
-              <X className="w-4 h-4" />
+              <X className="w-[18px] h-[18px]" />
             </button>
           )}
         </div>
@@ -3784,7 +3768,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
                 mapCategory === k ? 'bg-sky-600 text-white' : 'bg-white/90 text-neutral-700'
               }`}
             >
-              <cat.icon className="w-3.5 h-3.5" />
+              <cat.icon className="w-4 h-4" />
               <span>{cat.label}</span>
             </button>
           ))}
@@ -3797,7 +3781,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
           onClick={handleLocate}
           className="absolute bottom-4 right-4 z-20 w-10 h-10 rounded-xl bg-white shadow-lg border border-neutral-200 flex items-center justify-center text-neutral-700 hover:bg-neutral-50 active:scale-95 transition-all"
         >
-          <Navigation className={`w-[18px] h-[18px] ${isLocating ? 'animate-spin text-sky-500' : 'text-neutral-700'}`} />
+          <Navigation className={`w-[21px] h-[21px] ${isLocating ? 'animate-spin text-sky-500' : 'text-neutral-700'}`} />
         </button>
       )}
 
@@ -3841,14 +3825,14 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
                   <div>
                     <div className="flex items-center gap-1.5">
                       <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1 rounded ${cat.bg} ${cat.text}`}>
-                        <cat.icon className="w-3 h-3" />
+                        <cat.icon className="w-3.5 h-3.5" />
                         {cat.label}
                       </span>
                       <span className="text-xs font-bold text-neutral-800">{p.name}</span>
                     </div>
                     <div className="text-[10px] text-neutral-400 mt-0.5">{p.address}</div>
                   </div>
-                  <ChevronRight className="w-[18px] h-[18px] text-neutral-400" />
+                  <ChevronRight className="w-[21px] h-[21px] text-neutral-400" />
                 </div>
               );
             })}
