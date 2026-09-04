@@ -2588,8 +2588,8 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3">
-      <div className="w-full max-w-md bg-white rounded-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+      <div className="w-full max-w-md bg-white rounded-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
         {/* モーダルヘッダー */}
         <div className="px-5 py-3 border-b border-neutral-150 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2">
@@ -2606,7 +2606,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-        <div className="px-5 py-3.5 overflow-y-auto space-y-3 flex-1 min-h-0">
+        <div className="px-5 pt-2 pb-3.5 overflow-y-auto space-y-3 flex-1 min-h-0">
 
           <PlaceSearchField
             isMapsLoaded={isMapsLoaded}
@@ -3649,7 +3649,10 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
         contentDiv.appendChild(btn);
 
         infoWindowRef.current.setContent(contentDiv);
-        infoWindowRef.current.open(map, marker);
+        // anchor指定のopen()を使うことで、Googleが選択中ピンの中心を基準に
+        // 吹き出し（本体・しっぽ）を一直線に配置し、画面端では自動で
+        // はみ出さない位置へ補正してくれる（legacyの2引数形式より正確）。
+        infoWindowRef.current.open({ map, anchor: marker, shouldFocus: false });
       });
 
       markersRef.current.push(marker);
