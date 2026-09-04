@@ -30,4 +30,8 @@
 }
 .gm-style-iw-c {
   padding-top: 20px !important;
+  /* 閉じるボタンをヘッダー行から絶対配置に切り替えたぶん、
+     本文側で右側のスペースを確保しておかないと、長い店名が
+     ×ボタンの下に潜り込んで重なって見えてしまう。 */
+  padding-right: 28px !important;
 }
