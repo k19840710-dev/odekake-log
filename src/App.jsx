@@ -2618,7 +2618,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-        <div className="px-[26px] pt-[3px] pb-[15px] overflow-y-auto space-y-[13px] flex-1 min-h-0">
+        <div className="px-[26px] pt-2 pb-[15px] overflow-y-auto space-y-[13px] flex-1 min-h-0">
 
           <PlaceSearchField
             isMapsLoaded={isMapsLoaded}
