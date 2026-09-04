@@ -60,19 +60,22 @@ const CATEGORIES = {
   other: { label: 'その他施設・駅', icon: MapPin, emoji: '📍', color: '#64748b', bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200' }
 };
 
-// カテゴリーの絵文字から、地図ピン用のSVGアイコン（data URI）を作る
-// Googleマップの絵文字ピンのように、背景の色板を持たせず絵文字そのものだけを表示する
-function buildEmojiMarkerIcon(emoji, faded = false) {
+// カテゴリーの絵文字＋色から、地図ピン用のSVGアイコン（data URI）を作る
+// Googleマップのスポットアイコンのように、吹き出し（ピンの尻尾）を持たない
+// 丸いバッジの中に絵文字を乗せるだけのシンプルな形にする
+function buildEmojiMarkerIcon(emoji, color, faded = false) {
+  const opacity = faded ? 0.6 : 1;
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34">
-      <text x="17" y="26" font-size="25" text-anchor="middle" opacity="${faded ? 0.55 : 1}">${emoji}</text>
+    <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30">
+      <circle cx="15" cy="15" r="13" fill="${color}" stroke="#ffffff" stroke-width="2" opacity="${opacity}"/>
+      <text x="15" y="20" font-size="15" text-anchor="middle">${emoji}</text>
     </svg>
   `.trim();
 
   return {
     url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
-    scaledSize: new window.google.maps.Size(34, 34),
-    anchor: new window.google.maps.Point(17, 24)
+    scaledSize: new window.google.maps.Size(30, 30),
+    anchor: new window.google.maps.Point(15, 15)
   };
 }
 
@@ -2740,7 +2743,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
         position,
         map,
         title: place.name,
-        icon: buildEmojiMarkerIcon(cat.emoji, mapViewMode === 'wishlist')
+        icon: buildEmojiMarkerIcon(cat.emoji, cat.color, mapViewMode === 'wishlist')
       });
 
       marker.addListener('click', () => {
