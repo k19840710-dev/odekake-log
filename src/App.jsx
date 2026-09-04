@@ -2907,8 +2907,10 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
       <div ref={mapRef} className="w-full h-full z-0 bg-neutral-100" />
 
       {/* APIキー未設定時でもアプリが壊れない安全なプレビューカード表示 */}
+      {/* 行った／行きたい・検索・カテゴリーの操作は上の浮遊オーバーレイと共通のstateを使うため、
+          ここでは重複させず、そのぶんの高さを空けるだけにする */}
       {!isLoaded && (
-        <div className="absolute inset-0 z-10 bg-neutral-50/95 flex flex-col p-4 overflow-y-auto">
+        <div className="absolute inset-0 z-10 bg-neutral-50/95 flex flex-col px-4 pb-4 pt-36 overflow-y-auto">
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center mb-3">
             <h4 className="text-xs font-bold text-amber-900 mb-1">Google Maps APIキーが未設定です</h4>
             <p className="text-[11px] text-amber-700 mb-2">
@@ -2919,28 +2921,6 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
               className="bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold px-3 py-1 rounded-lg"
             >
               APIキーを入力する
-            </button>
-          </div>
-
-          {/* 行った／行きたい 切り替え（フォールバック時も利用可能） */}
-          <div className="flex items-center gap-1 bg-white rounded-full p-1 border border-neutral-200 text-xs w-fit mb-3">
-            <button
-              onClick={() => setMapViewMode('visited')}
-              className={`flex items-center gap-1 px-3 py-1 rounded-full font-bold transition-colors ${
-                mapViewMode === 'visited' ? 'bg-sky-600 text-white' : 'text-neutral-500'
-              }`}
-            >
-              <Compass className="w-3.5 h-3.5" />
-              <span>行った ({places.length})</span>
-            </button>
-            <button
-              onClick={() => setMapViewMode('wishlist')}
-              className={`flex items-center gap-1 px-3 py-1 rounded-full font-bold transition-colors ${
-                mapViewMode === 'wishlist' ? 'bg-sky-600 text-white' : 'text-neutral-500'
-              }`}
-            >
-              <Bookmark className="w-3.5 h-3.5" />
-              <span>行きたい ({wishlist.length})</span>
             </button>
           </div>
 
