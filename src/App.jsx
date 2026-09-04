@@ -3559,13 +3559,16 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
   const mapRef = useRef(null);
   const googleMapInstanceRef = useRef(null);
   const markersRef = useRef([]);
-  const infoWindowRef = useRef(null);
   const overlayRef = useRef(null);
 
   const [mapViewMode, setMapViewMode] = useState('visited'); // 'visited' | 'wishlist'
   const [mapCategory, setMapCategory] = useState('all');
   const [mapSearch, setMapSearch] = useState('');
   const [isLocating, setIsLocating] = useState(false);
+  // ピンタップ時は地図の上に大きな吹き出しを出さず、下部からスライドする
+  // 「スポット概要カード」（ボトムシート）で表示する。
+  const [selectedSpot, setSelectedSpot] = useState(null);
+  const [isCategoryFilterOpen, setIsCategoryFilterOpen] = useState(false);
   // 「検索・カテゴリー」浮遊オーバーレイの実際の高さ。カテゴリーが2段に
   // 折り返っても、APIキー未設定時のフォールバック表示と重ならないよう、
   // 固定値ではなくResizeObserverで実測してその分だけ下に余白を空ける。
@@ -3596,8 +3599,6 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
           streetViewControl: false,
           fullscreenControl: false
         });
-
-        infoWindowRef.current = new window.google.maps.InfoWindow();
 
         map.addListener('click', (e) => {
           const lat = e.latLng.lat();
@@ -3648,58 +3649,9 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
         icon: buildEmojiMarkerIcon(cat.emoji, cat.color)
       });
 
-      marker.addListener('click', () => {
-        const contentDiv = document.createElement('div');
-        contentDiv.style.padding = '3px';
-        contentDiv.style.maxWidth = '176px';
-        contentDiv.style.boxSizing = 'border-box';
-
-        const title = document.createElement('div');
-        title.style.fontWeight = 'bold';
-        title.style.fontSize = '13px';
-        title.style.lineHeight = '1.35';
-        // ×ボタン（InfoWindow右上に絶対配置）の下に店名が潜り込んで
-        // 重ならないよう、右側に専用スペースを確保しつつ、長い店名は
-        // 折り返して最大2行までに収める（それ以上は省略記号で切る）。
-        title.style.paddingRight = '18px';
-        title.style.boxSizing = 'border-box';
-        title.style.display = '-webkit-box';
-        title.style.webkitLineClamp = '2';
-        title.style.webkitBoxOrient = 'vertical';
-        title.style.overflow = 'hidden';
-        title.style.wordBreak = 'break-word';
-        title.textContent = `${cat.emoji} ${place.name}`;
-        contentDiv.appendChild(title);
-
-        const sub = document.createElement('div');
-        sub.style.fontSize = '11px';
-        sub.style.color = '#0284c7';
-        sub.style.marginTop = '2px';
-        sub.textContent = mapViewMode === 'wishlist'
-          ? '行きたい場所として保存済み'
-          : `最終訪問: ${place.lastVisited ? formatDateWithWeekday(place.lastVisited) : '未訪問'}`;
-        contentDiv.appendChild(sub);
-
-        const btn = document.createElement('button');
-        btn.innerText = mapViewMode === 'wishlist' ? '訪問を記録' : '詳細を見る';
-        btn.style.marginTop = '6px';
-        btn.style.width = '100%';
-        btn.style.padding = '4px';
-        btn.style.backgroundColor = '#0284c7';
-        btn.style.color = '#fff';
-        btn.style.fontSize = '11px';
-        btn.style.border = 'none';
-        btn.style.borderRadius = '4px';
-        btn.style.cursor = 'pointer';
-        btn.onclick = () => (mapViewMode === 'wishlist' ? onConvertWishlistToVisit?.(place) : onSelectPlace(place));
-        contentDiv.appendChild(btn);
-
-        infoWindowRef.current.setContent(contentDiv);
-        // anchor指定のopen()を使うことで、Googleが選択中ピンの中心を基準に
-        // 吹き出し（本体・しっぽ）を一直線に配置し、画面端では自動で
-        // はみ出さない位置へ補正してくれる（legacyの2引数形式より正確）。
-        infoWindowRef.current.open({ map, anchor: marker, shouldFocus: false });
-      });
+      // ピンの上に吹き出しを出さず、下部のボトムシートに切り替える。
+      // ピン自体も地図も隠れないので、直感的に確認できる。
+      marker.addListener('click', () => setSelectedSpot(place));
 
       markersRef.current.push(marker);
       bounds.extend(position);
@@ -3709,7 +3661,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
       map.fitBounds(bounds, { top: 50, bottom: 50, left: 30, right: 30 });
       if (filtered.length === 1) map.setZoom(15);
     }
-  }, [sourceList, mapViewMode, mapCategory, mapSearch, targetPlace, isLoaded, onSelectPlace, onConvertWishlistToVisit]);
+  }, [sourceList, mapCategory, mapSearch, targetPlace, isLoaded]);
 
   // targetPlace 移動
   useEffect(() => {
@@ -3755,9 +3707,12 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
     return () => observer.disconnect();
   }, [mapCategory, mapViewMode]);
 
-  // 表示対象（行った／行きたい）を切り替えたら、展開状態をリセットする
+  // 表示対象（行った／行きたい）を切り替えたら、展開状態と
+  // 開いていたボトムシートをリセットする（表示中の項目が別リストの
+  // ものになってしまうのを防ぐ）
   useEffect(() => {
     setShowAllFallbackSpots(false);
+    setSelectedSpot(null);
   }, [mapViewMode]);
 
   return (
@@ -3810,29 +3765,6 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
             </button>
           )}
         </div>
-
-        <div className="flex flex-wrap gap-1 text-xs pointer-events-auto">
-          <button
-            onClick={() => setMapCategory('all')}
-            className={`px-3 py-1 rounded-full text-[10px] font-bold shadow-md backdrop-blur-md transition-all whitespace-nowrap ${
-              mapCategory === 'all' ? 'bg-neutral-900 text-white' : 'bg-white/90 text-neutral-700'
-            }`}
-          >
-            すべて ({sourceList.length})
-          </button>
-          {Object.entries(CATEGORIES).map(([k, cat]) => (
-            <button
-              key={k}
-              onClick={() => setMapCategory(k)}
-              className={`px-2.5 py-1 rounded-full text-[10px] font-bold shadow-md backdrop-blur-md transition-all whitespace-nowrap flex items-center gap-1 ${
-                mapCategory === k ? 'bg-sky-600 text-white' : 'bg-white/90 text-neutral-700'
-              }`}
-            >
-              <cat.icon className="w-4 h-4" />
-              <span>{cat.label}</span>
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* 現在地ボタン */}
@@ -3843,6 +3775,50 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
         >
           <Navigation className={`w-[21px] h-[21px] ${isLocating ? 'animate-spin text-sky-500' : 'text-neutral-700'}`} />
         </button>
+      )}
+
+      {/* カテゴリーの絞り込み：地図が広く見えるよう、上のオーバーレイから
+          外して右下に丸いフィルターボタンとして独立配置する。選択中は
+          バッジで件数を示し、タップでポップアップの選択肢を開閉する。 */}
+      {isLoaded && (
+        <div className="absolute bottom-[60px] right-4 z-20 flex flex-col items-end gap-2">
+          {isCategoryFilterOpen && (
+            <div className="bg-white rounded-2xl shadow-xl border border-neutral-200 p-2 w-48 max-h-64 overflow-y-auto">
+              <button
+                onClick={() => { setMapCategory('all'); setIsCategoryFilterOpen(false); }}
+                className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
+                  mapCategory === 'all' ? 'bg-neutral-900 text-white' : 'text-neutral-700 hover:bg-neutral-100'
+                }`}
+              >
+                すべて ({sourceList.length})
+              </button>
+              {Object.entries(CATEGORIES).map(([k, cat]) => (
+                <button
+                  key={k}
+                  onClick={() => { setMapCategory(k); setIsCategoryFilterOpen(false); }}
+                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 ${
+                    mapCategory === k ? 'bg-sky-600 text-white' : 'text-neutral-700 hover:bg-neutral-100'
+                  }`}
+                >
+                  <cat.icon className="w-4 h-4" />
+                  <span>{cat.shortLabel}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          <button
+            onClick={() => setIsCategoryFilterOpen(v => !v)}
+            className={`relative w-10 h-10 rounded-full shadow-lg border flex items-center justify-center active:scale-95 transition-all ${
+              mapCategory !== 'all' ? 'bg-sky-600 border-sky-600 text-white' : 'bg-white border-neutral-200 text-neutral-700 hover:bg-neutral-50'
+            }`}
+            title="カテゴリーで絞り込み"
+          >
+            <Filter className="w-[18px] h-[18px]" />
+            {mapCategory !== 'all' && (
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-white" />
+            )}
+          </button>
+        </div>
       )}
 
       {/* Googleマップ描画DOM */}
@@ -3911,6 +3887,90 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, o
           )}
         </div>
       )}
+
+      {/* スポット概要カード（ボトムシート）：ピンをタップした際、地図の上に
+          大きな吹き出しを重ねず、下部から独立したカードとしてスライド
+          表示する。行った／行きたいで内容とアクションを出し分ける。 */}
+      {selectedSpot && (() => {
+        const cat = CATEGORIES[selectedSpot.category] || CATEGORIES.other;
+        const isWishlistSpot = mapViewMode === 'wishlist';
+        return (
+          <div className="absolute inset-x-0 bottom-0 z-30 flex justify-center px-3 pb-3 pointer-events-none">
+            <div className="sheet-slide-up pointer-events-auto w-full max-w-md bg-white rounded-3xl shadow-2xl border border-neutral-200 p-4">
+              <div className="flex items-start justify-between gap-2">
+                <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
+                  <cat.icon className="w-3.5 h-3.5" />
+                  {cat.shortLabel}
+                </span>
+                <button
+                  onClick={() => setSelectedSpot(null)}
+                  className="p-1 -mr-1 -mt-1 text-neutral-400 hover:text-neutral-600 rounded-lg flex-shrink-0"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <h3 className="text-sm font-black text-neutral-900 leading-snug mt-1.5 line-clamp-2">
+                {selectedSpot.name}
+              </h3>
+
+              {isWishlistSpot ? (
+                <>
+                  {selectedSpot.memo && (
+                    <p className="text-xs text-neutral-600 mt-1.5 leading-relaxed line-clamp-2">
+                      {selectedSpot.memo}
+                    </p>
+                  )}
+                  {selectedSpot.referenceUrl && (
+                    <a
+                      href={selectedSpot.referenceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-sky-600 hover:text-sky-700 font-semibold"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>参考リンクを開く</span>
+                    </a>
+                  )}
+                  <button
+                    onClick={() => {
+                      onConvertWishlistToVisit?.(selectedSpot);
+                      setSelectedSpot(null);
+                    }}
+                    className="mt-3 w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>訪問を記録</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="mt-1.5 flex items-center gap-2 text-[11px] text-neutral-500">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-sky-500" />
+                      最終訪問: {selectedSpot.lastVisited ? formatDateWithWeekday(selectedSpot.lastVisited) : '未訪問'}
+                    </span>
+                  </div>
+                  {selectedSpot.avgRating > 0 && (
+                    <div className="mt-1 flex items-center gap-1">
+                      <StarRating rating={selectedSpot.avgRating} sizeClass="w-3.5 h-3.5" />
+                    </div>
+                  )}
+                  <button
+                    onClick={() => {
+                      onSelectPlace(selectedSpot);
+                      setSelectedSpot(null);
+                    }}
+                    className="mt-3 w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <span>詳細を見る</span>
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

@@ -13,27 +13,15 @@
   display: none;
 }
 
-/* Google Maps の InfoWindow：閉じるボタンの見た目だけを軽く調整する。
-   以前は閉じるボタン用のヘッダー行（.gm-style-iw-chr）自体の高さ・
-   positionを書き換えて畳んでいたが、それがGoogle内部の「吹き出しの
-   三角形をピンの中心に合わせるための高さ計算」を狂わせ、ポップアップが
-   選択中のピンから大きく離れた位置に表示される不具合の原因になって
-   いた。そのためレイアウト（高さ・position・padding）には一切触れず、
-   既存の要素はそのままの構造・流れで残し、ボタンの位置とアイコンの
-   見た目サイズだけを上書きする。 */
-.gm-style-iw-c > button.gm-ui-hover-effect,
-.gm-style-iw-chr > button.gm-ui-hover-effect {
-  top: 6px !important;
-  right: 6px !important;
+/* マップのピンタップ時は、これまでGoogle純正のInfoWindow（吹き出し）を
+   カスタムCSSで細かく調整していたが、その内部DOM構造への上書きが位置
+   ズレなど繰り返し不具合の原因になっていたため廃止した。代わりに完全に
+   自前でレンダリングする「スポット概要カード」（ボトムシート）に置き換え、
+   下からスライドインさせる。 */
+@keyframes odekake-sheet-up {
+  from { transform: translateY(100%); opacity: 0.6; }
+  to { transform: translateY(0); opacity: 1; }
 }
-
-.gm-style-iw-c > button.gm-ui-hover-effect img,
-.gm-style-iw-chr > button.gm-ui-hover-effect img,
-.gm-style-iw-c > button.gm-ui-hover-effect span,
-.gm-style-iw-chr > button.gm-ui-hover-effect span {
-  width: 11px !important;
-  height: 11px !important;
-  font-size: 11px !important;
-  line-height: 11px !important;
-  display: inline-block !important;
+.sheet-slide-up {
+  animation: odekake-sheet-up 0.22s ease-out;
 }
