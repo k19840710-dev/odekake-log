@@ -2037,23 +2037,28 @@ function OdekakeLogMain() {
         })()}
 
         {/* 場所詳細モーダル */}
-        {selectedPlaceDetail && (
-          <PlaceDetailModal
-            place={enrichedPlaces.find(p => p.id === selectedPlaceDetail.id) || selectedPlaceDetail}
-            onClose={() => setSelectedPlaceDetail(null)}
-            onJumpToMap={() => {
-              handleJumpToMap(selectedPlaceDetail);
-              setSelectedPlaceDetail(null);
-            }}
-            onAddVisit={() => {
-              setEditingVisit(null);
-              setEditingPlace(selectedPlaceDetail);
-              setSelectedPlaceDetail(null);
-              setIsRecordModalOpen(true);
-            }}
-            onDeletePlace={() => handleDeletePlace(selectedPlaceDetail.id)}
-          />
-        )}
+        {selectedPlaceDetail && (() => {
+          const detailPlace = enrichedPlaces.find(p => p.id === selectedPlaceDetail.id) || selectedPlaceDetail;
+          return (
+            <PlaceDetailModal
+              place={detailPlace}
+              onClose={() => setSelectedPlaceDetail(null)}
+              onJumpToMap={() => {
+                handleJumpToMap(selectedPlaceDetail);
+                setSelectedPlaceDetail(null);
+              }}
+              onEditVisit={() => {
+                // 複数回の再訪履歴管理は廃止し、最新の記録内容を編集する
+                // 単一の「編集」導線に一本化する（モーダルが重なる遷移も無くす）。
+                setEditingVisit(detailPlace.visits?.[0] || null);
+                setEditingPlace(selectedPlaceDetail);
+                setSelectedPlaceDetail(null);
+                setIsRecordModalOpen(true);
+              }}
+              onDeletePlace={() => handleDeletePlace(selectedPlaceDetail.id)}
+            />
+          );
+        })()}
 
         {/* 削除確認ダイアログ */}
         {confirmDialog && (
@@ -3431,11 +3436,14 @@ function TripFormModal({ onClose, onSave }) {
 // ==========================================
 // 場所詳細モーダル
 // ==========================================
-function PlaceDetailModal({ place, onClose, onJumpToMap, onAddVisit, onDeletePlace }) {
+function PlaceDetailModal({ place, onClose, onJumpToMap, onEditVisit, onDeletePlace }) {
   const [lightboxSrc, setLightboxSrc] = useState(null);
 
   if (!place) return null;
   const cat = CATEGORIES[place.category] || CATEGORIES.other;
+  // 複数回の再訪履歴一覧は廃止し、最新の記録だけを表示する
+  // （画面が重ならずシンプルになるよう、編集は最新の記録に一本化）。
+  const latestVisit = place.visits?.[0] || null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
@@ -3479,49 +3487,53 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onAddVisit, onDeletePla
             </button>
           </div>
 
-          <div>
-            <div className="text-xs font-bold text-neutral-700 mb-2 flex items-center justify-between">
-              <span>訪問記録 ({place.visits?.length || 0}回)</span>
-              <button
-                onClick={onAddVisit}
-                className="text-sky-600 hover:text-sky-700 text-[11px] font-bold"
-              >
-                ＋ 再訪を記録
-              </button>
-            </div>
+          {latestVisit && (
+            <div>
+              <div className="text-xs font-bold text-neutral-700 mb-2 flex items-center justify-between">
+                <span>
+                  記録
+                  {place.visitCount > 1 && (
+                    <span className="text-neutral-400 font-normal"> （計{place.visitCount}回のうち最新）</span>
+                  )}
+                </span>
+                <button
+                  onClick={onEditVisit}
+                  className="text-sky-600 hover:text-sky-700 text-[11px] font-bold flex items-center gap-1"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                  <span>編集</span>
+                </button>
+              </div>
 
-            <div className="space-y-2">
-              {place.visits?.map((v) => (
-                <div key={v.id} className="bg-neutral-50 p-3 rounded-xl border border-neutral-150">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-neutral-800">
-                      {formatDateWithWeekday(v.date)}
-                    </span>
-                    <StarRating rating={v.rating || 5} sizeClass="w-3 h-3" />
-                  </div>
-                  {v.note && (
-                    <p className="text-xs text-neutral-600 mt-1.5 leading-relaxed">
-                      {v.note}
-                    </p>
-                  )}
-                  {v.photos && v.photos.length > 0 && (
-                    <div className="flex gap-1.5 mt-2 overflow-x-auto snap-x snap-mandatory pb-0.5">
-                      {v.photos.map((src, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => setLightboxSrc(src)}
-                          className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-neutral-200 snap-center"
-                        >
-                          <img src={src} alt={`${formatDateWithWeekday(v.date)}の写真${idx + 1}`} className="w-full h-full object-cover" />
-                        </button>
-                      ))}
-                    </div>
-                  )}
+              <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-150">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-neutral-800">
+                    {formatDateWithWeekday(latestVisit.date)}
+                  </span>
+                  <StarRating rating={latestVisit.rating || 5} sizeClass="w-3 h-3" />
                 </div>
-              ))}
+                {latestVisit.note && (
+                  <p className="text-xs text-neutral-600 mt-1.5 leading-relaxed">
+                    {latestVisit.note}
+                  </p>
+                )}
+                {latestVisit.photos && latestVisit.photos.length > 0 && (
+                  <div className="flex gap-1.5 mt-2 overflow-x-auto snap-x snap-mandatory pb-0.5">
+                    {latestVisit.photos.map((src, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setLightboxSrc(src)}
+                        className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-neutral-200 snap-center"
+                      >
+                        <img src={src} alt={`${formatDateWithWeekday(latestVisit.date)}の写真${idx + 1}`} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="pt-2 border-t border-neutral-150">
             <button
