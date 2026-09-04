@@ -2643,7 +2643,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-400 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+              className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
             />
           </div>
 
@@ -2651,30 +2651,36 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-neutral-700 mb-1">カテゴリー</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-400 rounded-xl px-2.5 py-2 text-xs text-neutral-800 focus:outline-none"
-              >
-                {Object.entries(CATEGORIES).map(([k, cat]) => (
-                  <option key={k} value={k}>{cat.label}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl pl-2.5 pr-7 py-2 text-xs text-neutral-800 focus:outline-none"
+                >
+                  {Object.entries(CATEGORIES).map(([k, cat]) => (
+                    <option key={k} value={k}>{cat.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-neutral-700 mb-1">評価</label>
-              <select
-                value={rating}
-                onChange={(e) => setRating(Number(e.target.value))}
-                className="w-full bg-neutral-50 border border-neutral-400 rounded-xl px-2.5 py-2 text-xs text-neutral-800 focus:outline-none"
-              >
-                <option value={5}>⭐⭐⭐⭐⭐ (5点)</option>
-                <option value={4}>⭐⭐⭐⭐ (4点)</option>
-                <option value={3}>⭐⭐⭐ (3点)</option>
-                <option value={2}>⭐⭐ (2点)</option>
-                <option value={1}>⭐ (1点)</option>
-              </select>
+              <div className="relative">
+                <select
+                  value={rating}
+                  onChange={(e) => setRating(Number(e.target.value))}
+                  className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl pl-2.5 pr-7 py-2 text-xs text-neutral-800 focus:outline-none"
+                >
+                  <option value={5}>⭐⭐⭐⭐⭐ (5点)</option>
+                  <option value={4}>⭐⭐⭐⭐ (4点)</option>
+                  <option value={3}>⭐⭐⭐ (3点)</option>
+                  <option value={2}>⭐⭐ (2点)</option>
+                  <option value={1}>⭐ (1点)</option>
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
             </div>
           </div>
 
@@ -2742,16 +2748,19 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
           {trips.length > 0 && (
             <div>
               <label className="block text-xs font-bold text-neutral-700 mb-1">旅行（任意）</label>
-              <select
-                value={tripId}
-                onChange={(e) => setTripId(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-400 rounded-xl px-2.5 py-2 text-xs text-neutral-800 focus:outline-none"
-              >
-                <option value="">なし（通常の記録）</option>
-                {trips.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={tripId}
+                  onChange={(e) => setTripId(e.target.value)}
+                  className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl pl-2.5 pr-7 py-2 text-xs text-neutral-800 focus:outline-none"
+                >
+                  <option value="">なし（通常の記録）</option>
+                  {trips.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
             </div>
           )}
 
@@ -2822,15 +2831,18 @@ function WishlistFormModal({ onClose, isMapsLoaded, onOpenApiKeyModal, onToast, 
 
           <div>
             <label className="block text-xs font-bold text-neutral-700 mb-1">カテゴリー</label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-400 rounded-xl px-2.5 py-2 text-xs text-neutral-800 focus:outline-none"
-            >
-              {Object.entries(CATEGORIES).map(([k, cat]) => (
-                <option key={k} value={k}>{cat.label}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl pl-2.5 pr-7 py-2 text-xs text-neutral-800 focus:outline-none"
+              >
+                {Object.entries(CATEGORIES).map(([k, cat]) => (
+                  <option key={k} value={k}>{cat.label}</option>
+                ))}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
           </div>
 
           <div>
@@ -3353,7 +3365,7 @@ function TripFormModal({ onClose, onSave }) {
                 required
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-400 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+                className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
               />
             </div>
             <div>
@@ -3363,7 +3375,7 @@ function TripFormModal({ onClose, onSave }) {
                 required
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-400 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
+                className="w-full appearance-none bg-neutral-50 border border-neutral-400 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none focus:border-sky-400"
               />
             </div>
           </div>
