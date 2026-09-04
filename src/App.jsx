@@ -563,18 +563,40 @@ function OdekakeLogMain() {
 
   return (
     <div className="flex justify-center bg-neutral-100 min-h-screen font-sans text-neutral-800 antialiased">
-      <div className="w-full max-w-md bg-[#fafafa] min-h-screen flex flex-col shadow-xl relative pb-20 border-x border-neutral-200">
+      <div className="w-full max-w-md lg:max-w-6xl bg-[#fafafa] min-h-screen flex flex-col shadow-xl lg:shadow-none relative pb-20 lg:pb-8 border-x lg:border-x-0 border-neutral-200">
 
         {/* ヘッダー */}
-        <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md px-4 py-3 border-b border-neutral-200 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-sky-500 text-white flex items-center justify-center shadow-sm">
-              <MapPin className="w-4 h-4" />
+        <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md px-4 lg:px-8 py-3 border-b border-neutral-200 flex items-center justify-between">
+          <div className="flex items-center gap-2 lg:gap-6">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-sky-500 text-white flex items-center justify-center shadow-sm">
+                <MapPin className="w-4 h-4" />
+              </div>
+              <div>
+                <h1 className="text-sm font-black text-neutral-900 tracking-tight">おでかけログ</h1>
+                <p className="text-[10px] text-neutral-400 font-medium hidden sm:block">Googleマップ検索・訪問記録</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-sm font-black text-neutral-900 tracking-tight">おでかけログ</h1>
-              <p className="text-[10px] text-neutral-400 font-medium">Googleマップ検索・訪問記録</p>
-            </div>
+
+            {/* デスクトップ用のタブ切り替え（画面幅が広いときはヘッダー内に表示） */}
+            <nav className="hidden lg:flex items-center gap-1 bg-neutral-100 rounded-full p-1">
+              {[
+                { key: 'logs', label: '記録', icon: Calendar },
+                { key: 'places', label: '場所', icon: Clock },
+                { key: 'map', label: 'マップ', icon: MapIcon }
+              ].map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveTab(key)}
+                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                    activeTab === key ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </nav>
           </div>
 
           <div className="flex items-center gap-1.5">
@@ -606,7 +628,7 @@ function OdekakeLogMain() {
 
         {/* APIキー未設定の案内バー（アプリはそのまま動作可能） */}
         {!apiKey && (
-          <div className="bg-amber-50/90 border-b border-amber-200 px-4 py-2 flex items-center justify-between text-xs text-amber-800">
+          <div className="bg-amber-50/90 border-b border-amber-200 px-4 lg:px-8 py-2 flex items-center justify-between text-xs text-amber-800">
             <div className="flex items-center gap-1.5 text-[11px]">
               <AlertCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
               <span>APIキー未設定：デモ候補検索＆簡易マップで動作中</span>
@@ -621,11 +643,11 @@ function OdekakeLogMain() {
         )}
 
         {/* メインエリア */}
-        <main className="flex-1 overflow-y-auto px-4 py-3">
+        <main className="flex-1 overflow-y-auto px-4 lg:px-8 py-3 lg:py-5">
 
           {/* 検索・絞り込み（記録・場所タブ） */}
           {activeTab !== 'map' && (
-            <div className="mb-3 space-y-2">
+            <div className="mb-3 space-y-2 lg:max-w-md">
               <div className="relative">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                 <input
@@ -692,6 +714,7 @@ function OdekakeLogMain() {
                       </span>
                     </div>
 
+                    <div className="space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0 xl:grid-cols-3">
                     {items.map((item) => {
                       const cat = CATEGORIES[item.place.category] || CATEGORIES.other;
                       const formattedDate = formatDateWithWeekday(item.date);
@@ -777,6 +800,7 @@ function OdekakeLogMain() {
                         </div>
                       );
                     })}
+                    </div>
                   </div>
                 ))
               )}
@@ -799,6 +823,7 @@ function OdekakeLogMain() {
                       <span className="text-neutral-400 font-normal">({items.length}箇所)</span>
                     </div>
 
+                    <div className="space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0 xl:grid-cols-3">
                     {items.map((place) => {
                       const cat = CATEGORIES[place.category] || CATEGORIES.other;
                       const lastFormatted = place.lastVisited ? formatDateWithWeekday(place.lastVisited) : '未訪問';
@@ -915,6 +940,7 @@ function OdekakeLogMain() {
                         </div>
                       );
                     })}
+                    </div>
                   </div>
                 ))
               )}
@@ -953,7 +979,7 @@ function OdekakeLogMain() {
         </main>
 
         {/* 下部ナビゲーション（記録 / 場所 / マップ） */}
-        <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-neutral-200 px-8 py-2 flex items-center justify-between z-40 shadow-lg">
+        <nav className="lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-neutral-200 px-8 py-2 flex items-center justify-between z-40 shadow-lg">
           <button
             onClick={() => setActiveTab('logs')}
             className={`flex flex-col items-center gap-1 transition-colors ${
@@ -1830,7 +1856,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, targetPlace, onSelectPla
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-135px)] relative rounded-2xl overflow-hidden border border-neutral-200 shadow-sm">
+    <div className="flex flex-col h-[calc(100vh-135px)] lg:h-[calc(100vh-160px)] relative rounded-2xl overflow-hidden border border-neutral-200 shadow-sm">
 
       {/* 検索・カテゴリー */}
       <div className="absolute top-3 left-3 right-3 z-20 flex flex-col gap-2 pointer-events-none">
