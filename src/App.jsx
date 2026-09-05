@@ -1728,17 +1728,17 @@ function OdekakeLogMain() {
                           >
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0">
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-1.5 flex-wrap">
                                   <AreaBadge place={wish} className="flex-shrink-0" />
                                   <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border} flex-shrink-0`}>
                                     <cat.icon className="w-4 h-4" />
                                     {cat.label}
                                   </span>
-                                  <h3 className="text-sm font-bold text-neutral-900 truncate">
-                                    {wish.name}
-                                  </h3>
                                 </div>
-                                <p className="text-[11px] text-neutral-400 mt-1 truncate">
+                                <h3 className="text-sm font-bold text-neutral-900 truncate mt-1">
+                                  {wish.name}
+                                </h3>
+                                <p className="text-[11px] text-neutral-400 mt-0.5 truncate">
                                   {wish.address || '住所未登録'}
                                 </p>
                               </div>
@@ -3073,19 +3073,21 @@ function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit }) {
         </span>
       </div>
 
-      {/* 店名・カテゴリー */}
+      {/* 店名・カテゴリー：エリアバッジとカテゴリーチップが並ぶと店名を
+          置くスペースが足りず途中で切れてしまうため、店名は次の行に
+          分けて全文が読めるようにする。 */}
       <div className="mt-2.5 flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <AreaBadge place={item.place} className="flex-shrink-0" />
             <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border} flex-shrink-0`}>
               <cat.icon className="w-4 h-4" />
               {cat.label}
             </span>
-            <h2 className="text-sm font-bold text-neutral-900 truncate">
-              {item.place.name}
-            </h2>
           </div>
+          <h2 className="text-sm font-bold text-neutral-900 truncate mt-1">
+            {item.place.name}
+          </h2>
           <p className="text-[11px] text-neutral-400 truncate mt-0.5">
             {item.place.address || '住所情報なし'}
           </p>
