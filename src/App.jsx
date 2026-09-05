@@ -97,16 +97,42 @@ function detectCategoryFromTypes(types = []) {
 // 住所の文字列から、普段使う地名レベル（駅名・繁華街名）を推定する。
 // 細かすぎる町丁目単位ではなく、都市の中の主要エリア単位でまとめる。
 // ==========================================
+// 東京都内は、駅・繁華街単体ではなく「おでかけ先としてまとまりのある
+// 複数駅区画」単位（例:「恵比寿・代官山・中目黒」）まで細分化する。
+// 各グループのkeywordsのいずれかが住所またはスポット名に含まれれば、
+// そのグループの label を採用する。
+const TOKYO_AREA_GROUPS = [
+  // 渋谷・城西エリア
+  { label: '渋谷・神泉', keywords: ['渋谷', '神泉', '神南', '宇田川町', '松濤'] },
+  { label: '原宿・表参道・青山', keywords: ['原宿', '表参道', '神宮前', '北青山', '南青山', '青山'] },
+  { label: '恵比寿・代官山・中目黒', keywords: ['恵比寿', '代官山', '中目黒'] },
+  { label: '三軒茶屋・池尻大橋', keywords: ['三軒茶屋', '池尻大橋', '池尻'] },
+  { label: '下北沢・代々木上原', keywords: ['下北沢', '代々木上原'] },
+  { label: '自由が丘・二子玉川', keywords: ['自由が丘', '二子玉川'] },
+  // 新宿・中央線エリア
+  { label: '新宿・代々木', keywords: ['新宿', '代々木'] },
+  { label: '新大久保', keywords: ['新大久保', '大久保'] },
+  { label: '高田馬場・早稲田', keywords: ['高田馬場', '早稲田'] },
+  { label: '中野・高円寺', keywords: ['中野', '高円寺'] },
+  { label: '吉祥寺', keywords: ['吉祥寺'] },
+  // 都心・港エリア
+  { label: '六本木・麻布・広尾', keywords: ['六本木', '麻布', '広尾'] },
+  { label: '赤坂・永田町', keywords: ['赤坂', '永田町'] },
+  { label: '品川・白金', keywords: ['品川', '白金'] },
+  { label: 'お台場・豊洲', keywords: ['お台場', '豊洲'] },
+  // 銀座・東東京エリア
+  { label: '銀座・有楽町', keywords: ['銀座', '有楽町'] },
+  { label: '東京駅・日本橋', keywords: ['東京駅', '日本橋', '丸の内', '大手町'] },
+  { label: '神田・秋葉原・神保町', keywords: ['神田', '秋葉原', '神保町'] },
+  { label: '上野・浅草・蔵前', keywords: ['上野', '浅草', '蔵前'] },
+  { label: '清澄白河・門前仲町', keywords: ['清澄白河', '門前仲町'] },
+  // 城北エリア
+  { label: '池袋・目白', keywords: ['池袋', '目白'] },
+  { label: '谷根千（谷中・根津・千駄木）', keywords: ['谷中', '根津', '千駄木'] }
+];
+
+// 東京都以外は従来どおり、単一駅・繁華街名のフラットなリストで判定する。
 const AREA_KEYWORDS_BY_CITY = {
-  東京都: [
-    '丸の内', '大手町', '日本橋', '銀座', '有楽町', '築地',
-    '新宿', '渋谷', '原宿', '表参道', '恵比寿', '中目黒', '代官山',
-    '池袋', '高田馬場', '早稲田', '大久保', '新大久保',
-    '上野', '浅草', '秋葉原', '両国',
-    '六本木', '赤坂', '麻布', '青山', '品川', '五反田', '目黒',
-    '吉祥寺', '中野', '荻窪', '町田', '立川', '八王子',
-    'お台場', '豊洲', '月島', '両国', '北千住', '錦糸町'
-  ],
   大阪府: ['梅田', 'なんば', '難波', '心斎橋', '天王寺', '新世界', '道頓堀', '中之島', '天満', '本町'],
   京都府: ['祇園', '河原町', '嵐山', '伏見', '京都駅', '烏丸', '四条'],
   福岡県: ['天神', '博多', '中洲', '大濠', '西新']
@@ -115,22 +141,40 @@ const AREA_KEYWORDS_BY_CITY = {
 function detectArea(place) {
   const admin = place?.administrativeArea || '';
   const address = place?.address || '';
+  const name = place?.name || '';
   const country = place?.country || '';
   const locality = place?.locality || '';
+  const searchText = `${address} ${name}`;
 
   const cityLabel = admin || country || 'その他の地域';
-  const keywords = AREA_KEYWORDS_BY_CITY[admin];
 
+  // ユーザーが登録・編集モーダルで明示的に指定したエリア名があれば、
+  // 自動判定より優先してそのまま使う。
+  if (place?.areaOverride) {
+    return { cityLabel, areaLabel: place.areaOverride };
+  }
+
+  if (admin === '東京都') {
+    // より具体的な地名を優先するため、全グループのキーワードを
+    // 長い順に並べてから最初にマッチしたものを採用する。
+    const flatKeywords = TOKYO_AREA_GROUPS.flatMap(g => g.keywords.map(k => ({ k, label: g.label })));
+    flatKeywords.sort((a, b) => b.k.length - a.k.length);
+    const matched = flatKeywords.find(({ k }) => searchText.includes(k));
+    if (matched) {
+      return { cityLabel, areaLabel: matched.label };
+    }
+    // どのエリアグループにも該当しない場合は、区市町村名にフォールバック
+    return { cityLabel, areaLabel: locality || cityLabel };
+  }
+
+  const keywords = AREA_KEYWORDS_BY_CITY[admin];
   if (keywords) {
-    // より具体的な地名を優先するため、長いキーワードから順に照合する
     const sorted = [...keywords].sort((a, b) => b.length - a.length);
-    const matched = sorted.find(k => address.includes(k));
+    const matched = sorted.find(k => searchText.includes(k));
     if (matched) {
       // マッチしたキーワードが「区・市」などの行政区分の名前そのもの
-      // （例:「目黒」が「目黒区」）だった場合は、他の区（例:「世田谷区」）
-      // と表記が揃うよう正式名称（区・市付き）を使う。「中目黒」「六本木」
-      // のような、行政区分より細かい繁華街・駅名の場合はそのまま短い
-      // 名前を使う。
+      // （例:「伏見」が「伏見区」）だった場合は、正式名称（区・市付き）
+      // を使う。それ以外の繁華街・駅名の場合はそのまま短い名前を使う。
       const localityStem = locality.replace(/[区區市町村]$/, '');
       if (locality && matched === localityStem) {
         return { cityLabel, areaLabel: locality };
@@ -2492,6 +2536,10 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
   const [referenceUrl, setReferenceUrl] = useState('');
   const [category, setCategory] = useState(initialPlace?.category || 'food');
   const [selectedPlace, setSelectedPlace] = useState(initialPlace || null);
+  // エリアは住所から自動判定するが、ユーザーが自由に上書き・微調整できる
+  // ようにする。空欄のままなら自動判定の結果をそのまま使う（＝上書きは
+  // 保存しない）。
+  const [areaOverride, setAreaOverride] = useState(initialPlace?.areaOverride || '');
   const [photos, setPhotos] = useState(initialVisit?.photos || []);
   const [tripId, setTripId] = useState(initialVisit?.tripId || '');
   const [isProcessingPhotos, setIsProcessingPhotos] = useState(false);
@@ -2549,6 +2597,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
         wishData: {
           ...selectedPlace,
           category,
+          areaOverride: areaOverride.trim() || null,
           memo: note.trim(),
           referenceUrl: referenceUrl.trim(),
           plannedDate: date || null,
@@ -2563,7 +2612,8 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
       mode: 'visited',
       placeData: {
         ...selectedPlace,
-        category
+        category,
+        areaOverride: areaOverride.trim() || null
       },
       visitData: {
         date,
@@ -2640,6 +2690,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
             onSelectedPlaceChange={(place) => {
               setSelectedPlace(place);
               setCategory(place.category);
+              setAreaOverride(place.areaOverride || '');
             }}
             isLocked={isPlaceLocked}
             onUnlock={() => setIsPlaceLocked(false)}
@@ -2700,6 +2751,22 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
                 </div>
               </div>
             )}
+          </div>
+
+          {/* エリア：住所から自動判定するが、ユーザーが自由に変更・微調整
+              できるようにする。空欄のままなら自動判定の結果をそのまま
+              使う（保存時は上書きしない）。 */}
+          <div>
+            <label className="block text-[13px] font-bold text-neutral-700 mb-[5px]">
+              エリア（自動判定・変更可）
+            </label>
+            <input
+              type="text"
+              value={areaOverride}
+              onChange={(e) => setAreaOverride(e.target.value)}
+              placeholder={selectedPlace ? `自動判定: ${detectArea(selectedPlace).areaLabel}` : 'エリア名'}
+              className="w-full bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm px-3 py-[7px] text-[12.5px] text-neutral-800 focus:outline-none focus:border-sky-400"
+            />
           </div>
 
           {/* 行きたいモードのみ：参考リンク（Instagram・食べログ等） */}
