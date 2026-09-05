@@ -160,8 +160,25 @@ function detectArea(place) {
   }
 
   if (admin === '東京都') {
-    // より具体的な地名を優先するため、全グループのキーワードを
-    // 長い順に並べてから最初にマッチしたものを採用する。
+    // ①Googleプレイス検索から取得した町名（neighborhood。例:「恵比寿」
+    // 「神南」）があれば、それを最優先の判定材料にする。住所やスポット
+    // 名に対するあいまいな部分一致と違い、Googleが構造化データとして
+    // 返す実際の地名なので誤爆が起きにくい。
+    const neighborhood = place?.neighborhood || '';
+    if (neighborhood) {
+      const exactGroup = TOKYO_AREA_GROUPS.find(g => g.keywords.includes(neighborhood));
+      if (exactGroup) {
+        return { cityLabel, areaLabel: exactGroup.label };
+      }
+      // キーワードリストに無い町名でも、区までフォールバックするより
+      // 具体的なので、Googleが返した地名をそのままエリア名として使う。
+      return { cityLabel, areaLabel: neighborhood };
+    }
+
+    // ②neighborhoodが無い場合（APIキー未設定時のモックデータや、
+    // この機能追加より前に登録した古いデータ）は、従来通り住所・
+    // スポット名に対する部分一致で判定する。より具体的な地名を優先
+    // するため、全グループのキーワードを長い順に並べる。
     const flatKeywords = TOKYO_AREA_GROUPS.flatMap(g => g.keywords.map(k => ({ k, label: g.label })));
     flatKeywords.sort((a, b) => b.k.length - a.k.length);
     const matched = flatKeywords.find(({ k }) => searchText.includes(k));
@@ -2364,17 +2381,28 @@ function PlaceSearchField({
             let country = '';
             let adminArea = '';
             let locality = '';
-            let ward = '';
+            const sublocalityByLevel = {};
 
             placeResult.address_components?.forEach(c => {
               if (c.types.includes('country')) country = c.long_name;
               if (c.types.includes('administrative_area_level_1')) adminArea = c.long_name;
               if (c.types.includes('locality')) locality = c.long_name;
-              // 政令指定都市の「区」はGoogle上ではlocality（市）とは別の
-              // sublocality_level_1として返る。存在すればそちらを優先し、
-              // 東京23区のようにlocality自体が区の場合はそのまま使う。
-              if (c.types.includes('sublocality_level_1')) ward = c.long_name;
+              if (c.types.includes('sublocality_level_1')) sublocalityByLevel[1] = c.long_name;
+              if (c.types.includes('sublocality_level_2')) sublocalityByLevel[2] = c.long_name;
             });
+
+            // 政令指定都市（大阪市・京都市・福岡市など、localityが「〜市」）
+            // では、その下の「区」がGoogle上ではsublocality_level_1として
+            // 返り、丁目より上の町名（例:「梅田」）はさらに一段下の
+            // sublocality_level_2に来る。一方、東京23区のようにlocality
+            // 自体が既に「〜区」の場合は区の下に区は無いため、
+            // sublocality_level_1自体が町名（例:「神南」「恵比寿」
+            // 「三軒茶屋」）にあたる。
+            const isDesignatedCity = /市$/.test(locality) && !!sublocalityByLevel[1];
+            const ward = isDesignatedCity ? sublocalityByLevel[1] : '';
+            // 「エリア」判定用の町名。キーワードの部分一致に頼らず、
+            // Googleが構造化データとして返す実際の地名をそのまま使える。
+            const neighborhood = isDesignatedCity ? (sublocalityByLevel[2] || '') : (sublocalityByLevel[1] || '');
 
             const autoCategory = detectCategoryFromTypes(placeResult.types);
 
@@ -2389,7 +2417,8 @@ function PlaceSearchField({
               category: autoCategory,
               country: country || '日本',
               administrativeArea: adminArea,
-              locality: ward || locality
+              locality: ward || locality,
+              neighborhood
             });
             setPredictions([]);
             setSearchKeyword('');
