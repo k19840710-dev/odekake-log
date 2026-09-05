@@ -133,6 +133,28 @@ function detectArea(place) {
   return { cityLabel, areaLabel: place?.locality || cityLabel };
 }
 
+// スポットカードのカテゴリーの直前に出す「エリアバッジ」用のラベル。
+// 東京23区・政令指定都市の区は locality（Google検索時にsublocality_level_1
+// を優先して格納済み）をそのまま使い、未設定の場合のみ住所文字列から
+// 市区町村相当の部分を簡易的に抜き出す（海外住所などマッチしない場合は
+// 都市名・都道府県相当にフォールバック）。
+function getAreaBadgeLabel(place) {
+  if (!place) return '';
+  if (place.locality) return place.locality;
+
+  const address = place.address || '';
+  if (address) {
+    // 都道府県を取り除いてから市区町村（政令指定都市の「区」を含む）を抽出
+    const withoutPref = address.replace(/^(東京都|北海道|(?:京都|大阪)府|.{2,3}県)/, '');
+    const cityWard = withoutPref.match(/^(.+?市)(.+?[区區])/);
+    if (cityWard) return cityWard[2];
+    const match = withoutPref.match(/^(.+?(?:区|區|市|町|村))/);
+    if (match) return match[1];
+  }
+
+  return place.administrativeArea || place.country || '';
+}
+
 // ==========================================
 // 日付ユーティリティ（JST/ローカルタイムゾーン安全）
 // ==========================================
@@ -511,8 +533,8 @@ function OdekakeLogMain() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
-  // 「タイムライン」タブの並び替え軸（月別／旅行別／エリア別／場所別）
-  const [logsGroupBy, setLogsGroupBy] = useState('month'); // 'month' | 'trip' | 'area' | 'places'
+  // 「タイムライン」タブの並び替え軸（月別／旅行別／エリア別）
+  const [logsGroupBy, setLogsGroupBy] = useState('month'); // 'month' | 'trip' | 'area'
 
   // 旅行・エリアの詳細表示、旅行作成モーダル
   const [openTripDetailId, setOpenTripDetailId] = useState(null);
@@ -880,40 +902,7 @@ function OdekakeLogMain() {
     return cities.sort((a, b) => b.total - a.total);
   }, [visits, places, searchQuery, selectedCategory]);
 
-  // 5. エリア別まとめ（場所タブ・訪問済み表示）
-  const placesGroupedByArea = useMemo(() => {
-    let list = enrichedPlaces.filter(p => p.visitCount > 0);
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter(p =>
-        p.name.toLowerCase().includes(q) ||
-        (p.address && p.address.toLowerCase().includes(q)) ||
-        p.visits.some(v => v.note && v.note.toLowerCase().includes(q))
-      );
-    }
-
-    if (selectedCategory !== 'all') {
-      list = list.filter(p => p.category === selectedCategory);
-    }
-
-    list.sort((a, b) => {
-      if (!a.lastVisited) return 1;
-      if (!b.lastVisited) return -1;
-      return new Date(b.lastVisited) - new Date(a.lastVisited);
-    });
-
-    const areaGroups = {};
-    list.forEach(p => {
-      const areaKey = p.administrativeArea ? `${p.country || ''} ${p.administrativeArea}`.trim() : (p.country || 'その他の地域');
-      if (!areaGroups[areaKey]) areaGroups[areaKey] = [];
-      areaGroups[areaKey].push(p);
-    });
-
-    return Object.entries(areaGroups).map(([area, items]) => ({ area, items }));
-  }, [enrichedPlaces, searchQuery, selectedCategory]);
-
-  // 5b. エリア別まとめ（場所タブ・行きたいリスト表示）
+  // 5. エリア別まとめ（行きたいリスト表示）
   const wishlistGroupedByArea = useMemo(() => {
     let list = wishlist;
 
@@ -1242,7 +1231,7 @@ function OdekakeLogMain() {
           {/* 検索・絞り込み（タイムライン・行きたいタブ）：カテゴリーは縦2段
               にせず、ネイティブアプリのような1行横スクロールのカルーセルに
               する（スクロールバーは.no-scrollbarで非表示）。下に続く表示
-              切り替え（月別/旅行別/エリア別/場所別）とは、余白＋薄い
+              切り替え（月別/旅行別/エリア別）とは、余白＋薄い
               区切り線で別グループだと分かるようにする。 */}
           {(activeTab === 'logs' || activeTab === 'wishlist') && (
             <div className="mb-4 space-y-2 lg:max-w-md">
@@ -1326,15 +1315,6 @@ function OdekakeLogMain() {
                 >
                   <MapPinned className="w-4 h-4" />
                   <span>エリア別</span>
-                </button>
-                <button
-                  onClick={() => setLogsGroupBy('places')}
-                  className={`flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full font-bold transition-colors ${
-                    logsGroupBy === 'places' ? 'bg-white text-sky-600 shadow-sm' : 'text-neutral-500'
-                  }`}
-                >
-                  <Compass className="w-4 h-4" />
-                  <span>場所別</span>
                 </button>
               </div>
 
@@ -1469,103 +1449,6 @@ function OdekakeLogMain() {
                 )
               )}
 
-              {/* 場所別表示：訪問済みの場所を一意にまとめ、平均評価・訪問回数などを確認する */}
-              {logsGroupBy === 'places' && (
-                placesGroupedByArea.length === 0 ? (
-                  <div className="py-16 text-center text-neutral-400 text-xs">
-                    登録されている場所がありません。
-                  </div>
-                ) : (
-                  placesGroupedByArea.map(({ area, items }) => (
-                    <div key={area} className="space-y-2.5">
-                      <div className="flex items-center gap-1.5 text-xs font-black text-neutral-700 px-1">
-                        <Compass className="w-[18px] h-[18px] text-sky-500" />
-                        <span>{area}</span>
-                        <span className="text-neutral-400 font-normal">({items.length}箇所)</span>
-                      </div>
-
-                      <div className="space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0 xl:grid-cols-3">
-                      {items.map((place) => {
-                        const cat = CATEGORIES[place.category] || CATEGORIES.other;
-                        const lastFormatted = place.lastVisited ? formatDateWithWeekday(place.lastVisited) : '未訪問';
-                        const lastRelative = place.lastVisited ? getRelativeDays(place.lastVisited) : '';
-
-                        return (
-                          <div
-                            key={place.id}
-                            onClick={() => setSelectedPlaceDetail(place)}
-                            className="bg-white rounded-2xl p-5 border border-neutral-200/80 shadow-sm hover:border-neutral-300 transition-all cursor-pointer"
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0 flex-1">
-                                <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
-                                  <cat.icon className="w-4 h-4" />
-                                  {cat.label}
-                                </span>
-                                <h3 className="text-sm font-bold text-neutral-900 leading-snug mt-1.5">
-                                  {place.name}
-                                </h3>
-                                <p className="text-[11px] text-neutral-400 mt-1 truncate">
-                                  {place.address || '住所未登録'}
-                                </p>
-                              </div>
-
-                              <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                                <span className="text-xs font-black text-sky-700 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-100 whitespace-nowrap">
-                                  計 {place.visitCount} 回
-                                </span>
-                                <ChevronRight className="w-[21px] h-[21px] text-neutral-300" />
-                              </div>
-                            </div>
-
-                            <div className="mt-3.5 flex items-center justify-between text-xs bg-neutral-50 p-2.5 rounded-xl border border-neutral-150">
-                              <span className="font-medium text-neutral-600 flex items-center gap-1">
-                                <Clock className="w-[18px] h-[18px] text-sky-500" />
-                                最後に訪れた日:
-                              </span>
-                              <div className="text-right">
-                                <span className="font-bold text-neutral-800">{lastFormatted}</span>
-                                {lastRelative && (
-                                  <span className="text-[11px] text-neutral-400 ml-1">({lastRelative})</span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="mt-1.5 flex items-center gap-1 px-0.5 text-[11px] text-neutral-500">
-                              <StarRating rating={place.avgRating} sizeClass="w-3 h-3" />
-                              <span>平均評価 {place.avgRating.toFixed(1)}</span>
-                            </div>
-
-                            <div
-                              className="mt-3.5 pt-3 border-t border-neutral-100 flex items-center gap-2"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {place.googleMapsUrl && (
-                                <a
-                                  href={place.googleMapsUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-neutral-600 hover:text-neutral-900 font-semibold flex items-center gap-1 text-[11px]"
-                                >
-                                  <ExternalLink className="w-4 h-4 text-neutral-400" />
-                                  <span>Googleマップ</span>
-                                </a>
-                              )}
-                              <button
-                                onClick={() => handleJumpToMap(place)}
-                                className="text-neutral-400 hover:text-sky-600 p-1 flex-shrink-0"
-                                title="マップでピンを見る"
-                              >
-                                <MapIcon className="w-[18px] h-[18px]" />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      </div>
-                    </div>
-                  ))
-                )
-              )}
             </div>
           )}
 
@@ -1744,6 +1627,7 @@ function OdekakeLogMain() {
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1.5">
+                                  <AreaBadge place={wish} className="flex-shrink-0" />
                                   <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border} flex-shrink-0`}>
                                     <cat.icon className="w-4 h-4" />
                                     {cat.label}
@@ -2372,11 +2256,16 @@ function PlaceSearchField({
             let country = '';
             let adminArea = '';
             let locality = '';
+            let ward = '';
 
             placeResult.address_components?.forEach(c => {
               if (c.types.includes('country')) country = c.long_name;
               if (c.types.includes('administrative_area_level_1')) adminArea = c.long_name;
               if (c.types.includes('locality')) locality = c.long_name;
+              // 政令指定都市の「区」はGoogle上ではlocality（市）とは別の
+              // sublocality_level_1として返る。存在すればそちらを優先し、
+              // 東京23区のようにlocality自体が区の場合はそのまま使う。
+              if (c.types.includes('sublocality_level_1')) ward = c.long_name;
             });
 
             const autoCategory = detectCategoryFromTypes(placeResult.types);
@@ -2392,7 +2281,7 @@ function PlaceSearchField({
               category: autoCategory,
               country: country || '日本',
               administrativeArea: adminArea,
-              locality: locality
+              locality: ward || locality
             });
             setPredictions([]);
             setSearchKeyword('');
@@ -2892,6 +2781,21 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
 // ==========================================
 // 星評価表示（絵文字ではなくLucideのStarアイコンで統一）
 // ==========================================
+// ==========================================
+// エリアバッジ：カテゴリーチップの直前に「区・市」などを表示する。
+// 情報が無い場所（住所未登録など）では何も表示しない。
+// ==========================================
+function AreaBadge({ place, className = '' }) {
+  const label = getAreaBadgeLabel(place);
+  if (!label) return null;
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded border bg-neutral-100 text-neutral-600 border-neutral-200 ${className}`}>
+      <MapPin className="w-3 h-3" />
+      {label}
+    </span>
+  );
+}
+
 function StarRating({ rating = 0, sizeClass = 'w-3 h-3' }) {
   const rounded = Math.round(rating);
   return (
@@ -2966,6 +2870,7 @@ function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit }) {
       <div className="mt-2.5 flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
+            <AreaBadge place={item.place} className="flex-shrink-0" />
             <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border} flex-shrink-0`}>
               <cat.icon className="w-4 h-4" />
               {cat.label}
@@ -3331,10 +3236,13 @@ function CalendarVisitRow({ item, onClick }) {
         </div>
       )}
       <div className="min-w-0 flex-1">
-        <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
-          <cat.icon className="w-3.5 h-3.5" />
-          {cat.label}
-        </span>
+        <div className="flex items-center gap-1 flex-wrap">
+          <AreaBadge place={item.place} />
+          <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
+            <cat.icon className="w-3.5 h-3.5" />
+            {cat.label}
+          </span>
+        </div>
         <h4 className="text-xs font-bold text-neutral-900 mt-1 truncate">{item.place.name}</h4>
         <StarRating rating={item.rating || 5} sizeClass="w-2.5 h-2.5" />
         {item.note && (
@@ -3658,10 +3566,13 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onEditVisit, onDeletePl
             すぎないよう、コンテナ側のpaddingで少しだけ呼吸させる */}
         <div className="px-5 pt-4 pb-3">
           <div className="flex items-center justify-between gap-2">
-            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
-              <cat.icon className="w-4 h-4" />
-              {cat.label}
-            </span>
+            <div className="flex items-center gap-1 flex-wrap min-w-0">
+              <AreaBadge place={place} />
+              <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
+                <cat.icon className="w-4 h-4" />
+                {cat.label}
+              </span>
+            </div>
             <button onClick={onClose} className="p-1.5 -mr-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg flex-shrink-0">
               <X className="w-[20px] h-[20px]" />
             </button>
@@ -4120,10 +4031,13 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, t
           <div className="pb-safe absolute inset-x-0 bottom-0 z-30 flex justify-center px-3 pointer-events-none">
             <div className="sheet-slide-up pointer-events-auto w-full max-w-md bg-white rounded-3xl shadow-2xl border border-neutral-200 p-4">
               <div className="flex items-start justify-between gap-2">
-                <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
-                  <cat.icon className="w-3.5 h-3.5" />
-                  {cat.shortLabel}
-                </span>
+                <div className="flex items-center gap-1 flex-wrap min-w-0">
+                  <AreaBadge place={selectedSpot} />
+                  <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>
+                    <cat.icon className="w-3.5 h-3.5" />
+                    {cat.shortLabel}
+                  </span>
+                </div>
                 <button
                   onClick={() => setSelectedSpot(null)}
                   className="p-1 -mr-1 -mt-1 text-neutral-400 hover:text-neutral-600 rounded-lg flex-shrink-0"
