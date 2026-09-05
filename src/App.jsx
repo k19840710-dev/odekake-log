@@ -116,6 +116,7 @@ function detectArea(place) {
   const admin = place?.administrativeArea || '';
   const address = place?.address || '';
   const country = place?.country || '';
+  const locality = place?.locality || '';
 
   const cityLabel = admin || country || 'その他の地域';
   const keywords = AREA_KEYWORDS_BY_CITY[admin];
@@ -125,12 +126,21 @@ function detectArea(place) {
     const sorted = [...keywords].sort((a, b) => b.length - a.length);
     const matched = sorted.find(k => address.includes(k));
     if (matched) {
+      // マッチしたキーワードが「区・市」などの行政区分の名前そのもの
+      // （例:「目黒」が「目黒区」）だった場合は、他の区（例:「世田谷区」）
+      // と表記が揃うよう正式名称（区・市付き）を使う。「中目黒」「六本木」
+      // のような、行政区分より細かい繁華街・駅名の場合はそのまま短い
+      // 名前を使う。
+      const localityStem = locality.replace(/[区區市町村]$/, '');
+      if (locality && matched === localityStem) {
+        return { cityLabel, areaLabel: locality };
+      }
       return { cityLabel, areaLabel: matched };
     }
   }
 
   // マッチしなければ市区町村（locality）単位にフォールバック
-  return { cityLabel, areaLabel: place?.locality || cityLabel };
+  return { cityLabel, areaLabel: locality || cityLabel };
 }
 
 // スポットカードのカテゴリーの直前に出す「エリアバッジ」用のラベル。
