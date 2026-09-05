@@ -3374,7 +3374,7 @@ function DetailListModal({ icon: Icon, title, subtitle, headerExtra, items, onCl
           </button>
         </div>
 
-        <div className="p-5 overflow-y-auto space-y-3 flex-1">
+        <div className="pt-5 pb-5 pl-5 pr-4 overflow-y-auto space-y-3 flex-1 min-h-0 rounded-b-3xl">
           {headerExtra}
 
           <div className="space-y-2.5">
@@ -3533,7 +3533,7 @@ function TripDetailModal({ trip, period, items, heroPhoto, isMapsLoaded, onClose
           </div>
         )}
 
-        <div className="p-5 overflow-y-auto space-y-3 flex-1">
+        <div className="pt-5 pb-5 pl-5 pr-4 overflow-y-auto space-y-3 flex-1 min-h-0 rounded-b-3xl">
           <div className="flex items-center justify-between text-xs bg-neutral-50 p-2.5 rounded-xl border border-neutral-150">
             <span className="text-neutral-600">{items.length}件の訪問・{uniquePlaces.length}箇所</span>
             <button
@@ -3615,7 +3615,7 @@ function TripFormModal({ onClose, onSave }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-4 flex-1">
+        <form onSubmit={handleSubmit} className="pt-5 pb-5 pl-5 pr-4 overflow-y-auto space-y-4 flex-1 min-h-0 rounded-b-3xl">
           <div>
             <label className="block text-xs font-bold text-neutral-700 mb-1">旅行の名前</label>
             <input
@@ -3715,7 +3715,7 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onEditVisit, onDeletePl
           <p className="text-xs text-neutral-500 mt-1">{place.address}</p>
         </div>
 
-        <div className="px-5 pb-5 overflow-y-auto space-y-4 flex-1">
+        <div className="pl-5 pr-4 pb-5 overflow-y-auto space-y-4 flex-1 min-h-0 rounded-b-3xl">
           <div className="flex gap-2">
             {place.googleMapsUrl && (
               <a
