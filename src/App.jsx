@@ -452,6 +452,7 @@ const STORAGE_PLACES_KEY = 'odekake_places_v3';
 const STORAGE_VISITS_KEY = 'odekake_visits_v3';
 const STORAGE_WISHLIST_KEY = 'odekake_wishlist_v3';
 const STORAGE_TRIPS_KEY = 'odekake_trips_v3';
+const STORAGE_AREA_COVERS_KEY = 'odekake_area_covers_v3';
 const STORAGE_API_KEY = 'odekake_gmaps_api_key_v3';
 
 // ==========================================
@@ -528,6 +529,10 @@ function OdekakeLogMain() {
   const [visits, setVisits] = useState(INITIAL_VISITS);
   const [wishlist, setWishlist] = useState(INITIAL_WISHLIST);
   const [trips, setTrips] = useState(INITIAL_TRIPS);
+  // エリア別ヘッダーのカバー写真：エリアはトリップと違って永続エンティティ
+  // ではない（住所から都度算出されるグルーピング）ため、area.key
+  // （`${cityLabel}__${areaLabel}`）をキーにした選択結果だけを別途保持する。
+  const [areaCoverPhotos, setAreaCoverPhotos] = useState({});
 
   // フィルター・検索
   const [searchQuery, setSearchQuery] = useState('');
@@ -619,6 +624,13 @@ function OdekakeLogMain() {
       } else {
         localStorage.setItem(STORAGE_TRIPS_KEY, JSON.stringify(INITIAL_TRIPS));
       }
+      const savedAreaCovers = localStorage.getItem(STORAGE_AREA_COVERS_KEY);
+      if (savedAreaCovers) {
+        const parsedAreaCovers = JSON.parse(savedAreaCovers);
+        if (parsedAreaCovers && typeof parsedAreaCovers === 'object') {
+          setAreaCoverPhotos(parsedAreaCovers);
+        }
+      }
     } catch (e) {
       console.warn('LocalStorage error, using initial data:', e);
     }
@@ -663,6 +675,18 @@ function OdekakeLogMain() {
     } catch (e) {
       console.warn('Failed to save trips:', e);
     }
+  };
+
+  const setAreaCoverPhoto = (areaKey, src) => {
+    setAreaCoverPhotos(prev => {
+      const next = { ...prev, [areaKey]: src };
+      try {
+        localStorage.setItem(STORAGE_AREA_COVERS_KEY, JSON.stringify(next));
+      } catch (e) {
+        console.warn('Failed to save area cover photo:', e);
+      }
+      return next;
+    });
   };
 
   // 2. Google Maps API スクリプトの安全な読み込み
@@ -837,7 +861,8 @@ function OdekakeLogMain() {
 
       const uniquePlaceIds = new Set(items.map(i => i.placeId));
       const categories = Array.from(new Set(items.map(i => i.place.category)));
-      const firstPhoto = items.find(i => i.photos && i.photos.length > 0)?.photos[0] || null;
+      // カバー写真は明示的に選ばれていればそれを優先し、未選択なら1枚目
+      const firstPhoto = trip.coverPhoto || items.find(i => i.photos && i.photos.length > 0)?.photos[0] || null;
 
       return {
         trip,
@@ -1439,6 +1464,8 @@ function OdekakeLogMain() {
                                 area={area}
                                 onOpen={() => setOpenAreaDetailKey(area.key)}
                                 onJumpToMap={() => handleJumpAreaToMap(area.items)}
+                                coverPhoto={areaCoverPhotos[area.key]}
+                                onSetCoverPhoto={(src) => setAreaCoverPhoto(area.key, src)}
                               />
                             ))}
                           </div>
@@ -1893,7 +1920,9 @@ function OdekakeLogMain() {
           const period = detailTrip.startDate === detailTrip.endDate
             ? formatDateWithWeekday(detailTrip.startDate)
             : `${formatDateWithWeekday(detailTrip.startDate)} 〜 ${formatDateWithWeekday(detailTrip.endDate)}`;
-          const heroPhoto = detailItems.find(i => i.photos && i.photos.length > 0)?.photos[0] || null;
+          // カバー写真は明示的に選ばれていればそれを優先し、未選択なら
+          // 登録写真の1枚目を自動適用する。
+          const heroPhoto = detailTrip.coverPhoto || detailItems.find(i => i.photos && i.photos.length > 0)?.photos[0] || null;
 
           return (
             <TripDetailModal
@@ -1905,6 +1934,9 @@ function OdekakeLogMain() {
               onClose={() => setOpenTripDetailId(null)}
               onOpenPlace={(place) => { setOpenTripDetailId(null); setSelectedPlaceDetail(place); }}
               onJumpToMap={(place) => { setOpenTripDetailId(null); handleJumpToMap(place); }}
+              onSetCoverPhoto={(src) => {
+                saveTrips(trips.map(t => t.id === detailTrip.id ? { ...t, coverPhoto: src } : t));
+              }}
               onEditVisit={(item) => {
                 setOpenTripDetailId(null);
                 setEditingVisit(item);
@@ -2839,6 +2871,43 @@ function PhotoLightbox({ src, onClose }) {
 }
 
 // ==========================================
+// カバー写真選択：旅行・エリアの代表写真を、そのまとまりに紐づく
+// 登録済み写真の中から選び直せるようにするための共通ピッカー。
+// ==========================================
+function CoverPhotoPicker({ photos, current, onSelect, onClose }) {
+  return (
+    <div
+      className="fixed inset-0 z-[65] bg-black/60 flex items-end justify-center"
+      onClick={(e) => { e.stopPropagation(); onClose(); }}
+    >
+      <div
+        className="w-full max-w-md bg-white rounded-t-3xl p-4 pb-safe"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm font-bold text-neutral-900">カバー写真を選択</span>
+          <button onClick={onClose} className="p-1 -mr-1 text-neutral-400 hover:text-neutral-600 rounded-lg">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="flex gap-2 flex-wrap max-h-64 overflow-y-auto">
+          {photos.map((src, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => { onSelect(src); onClose(); }}
+              className={`w-16 h-16 rounded-xl overflow-hidden border-2 ${current === src ? 'border-sky-500' : 'border-transparent'}`}
+            >
+              <img src={src} alt="" className="w-full h-full object-cover" />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
 // 訪問記録カード（記録タブ・旅行詳細・エリア詳細で共通利用）
 // ==========================================
 function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit }) {
@@ -3009,21 +3078,42 @@ function TripSummaryCard({ summary, onOpen }) {
 // ==========================================
 // エリアサマリーカード（記録タブ・エリア別）
 // ==========================================
-function AreaSummaryCard({ area, onOpen, onJumpToMap }) {
+function AreaSummaryCard({ area, onOpen, onJumpToMap, coverPhoto, onSetCoverPhoto }) {
+  const [showCoverPicker, setShowCoverPicker] = useState(false);
   const categories = Array.from(new Set(area.items.map(i => i.place.category)));
   const lastVisited = area.items[0]?.date; // itemsは新しい順にソート済み
-  // 思い出しやすいよう、そのエリア内の記録から最初に見つかった写真を
-  // サムネイルとして表示する（無ければ何も表示しない）
-  const firstPhoto = area.items.find(i => i.photos && i.photos.length > 0)?.photos[0];
+  // カバー写真として選べる候補（重複除去）。明示的に選ばれていれば
+  // それを表示し、無ければ1枚目を自動適用する。
+  const allPhotos = useMemo(() => {
+    const seen = new Set();
+    const list = [];
+    area.items.forEach(i => (i.photos || []).forEach(src => {
+      if (!seen.has(src)) {
+        seen.add(src);
+        list.push(src);
+      }
+    }));
+    return list;
+  }, [area.items]);
+  const displayPhoto = coverPhoto || allPhotos[0];
 
   return (
     <div
       onClick={onOpen}
       className="bg-white rounded-2xl border border-neutral-200/80 shadow-sm hover:border-neutral-300 transition-all cursor-pointer overflow-hidden"
     >
-      {firstPhoto && (
-        <div className="w-full h-20 bg-neutral-100">
-          <img src={firstPhoto} alt="" className="w-full h-full object-cover" />
+      {displayPhoto && (
+        <div className="relative w-full h-20 bg-neutral-100">
+          <img src={displayPhoto} alt="" className="w-full h-full object-cover" />
+          {allPhotos.length > 1 && onSetCoverPhoto && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowCoverPicker(true); }}
+              className="absolute bottom-1.5 right-1.5 p-1 bg-black/45 hover:bg-black/60 text-white rounded-full"
+              title="カバー写真を変更"
+            >
+              <Camera className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       )}
       <div className="p-4">
@@ -3060,6 +3150,14 @@ function AreaSummaryCard({ area, onOpen, onJumpToMap }) {
         </div>
       )}
       </div>
+      {showCoverPicker && (
+        <CoverPhotoPicker
+          photos={allPhotos}
+          current={displayPhoto}
+          onSelect={(src) => onSetCoverPhoto?.(src)}
+          onClose={() => setShowCoverPicker(false)}
+        />
+      )}
     </div>
   );
 }
@@ -3354,7 +3452,9 @@ function TripMiniMap({ isMapsLoaded, places }) {
 // 付きの訪問リストで、旅行そのものを1つのまとまりとして振り返れる
 // ようにする。
 // ==========================================
-function TripDetailModal({ trip, period, items, heroPhoto, isMapsLoaded, onClose, onOpenPlace, onJumpToMap, onEditVisit, onDeleteTrip }) {
+function TripDetailModal({ trip, period, items, heroPhoto, isMapsLoaded, onClose, onOpenPlace, onJumpToMap, onEditVisit, onDeleteTrip, onSetCoverPhoto }) {
+  const [showCoverPicker, setShowCoverPicker] = useState(false);
+
   const uniquePlaces = useMemo(() => {
     const seen = new Set();
     const list = [];
@@ -3364,6 +3464,20 @@ function TripDetailModal({ trip, period, items, heroPhoto, isMapsLoaded, onClose
         list.push(i.place);
       }
     });
+    return list;
+  }, [items]);
+
+  // カバー写真として選べる候補：この旅行の記録に登録されている全写真
+  // （重複除去）。1枚も無ければピッカー自体を出さない。
+  const allPhotos = useMemo(() => {
+    const seen = new Set();
+    const list = [];
+    items.forEach(i => (i.photos || []).forEach(src => {
+      if (!seen.has(src)) {
+        seen.add(src);
+        list.push(src);
+      }
+    }));
     return list;
   }, [items]);
 
@@ -3377,12 +3491,23 @@ function TripDetailModal({ trip, period, items, heroPhoto, isMapsLoaded, onClose
           <div className="relative h-40 flex-shrink-0">
             <img src={heroPhoto} alt="" className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/0" />
-            <button
-              onClick={onClose}
-              className="absolute top-3 right-3 p-1.5 bg-black/40 hover:bg-black/55 text-white rounded-full"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="absolute top-3 right-3 flex items-center gap-1.5">
+              {allPhotos.length > 1 && (
+                <button
+                  onClick={() => setShowCoverPicker(true)}
+                  className="p-1.5 bg-black/40 hover:bg-black/55 text-white rounded-full"
+                  title="カバー写真を変更"
+                >
+                  <Camera className="w-4 h-4" />
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="p-1.5 bg-black/40 hover:bg-black/55 text-white rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <div className="absolute bottom-0 left-0 right-0 p-4">
               <h3 className="text-lg font-black text-white leading-tight flex items-center gap-1.5">
                 <Plane className="w-[18px] h-[18px] flex-shrink-0" />
@@ -3446,6 +3571,15 @@ function TripDetailModal({ trip, period, items, heroPhoto, isMapsLoaded, onClose
           </div>
         </div>
       </div>
+
+      {showCoverPicker && (
+        <CoverPhotoPicker
+          photos={allPhotos}
+          current={heroPhoto}
+          onSelect={(src) => onSetCoverPhoto?.(src)}
+          onClose={() => setShowCoverPicker(false)}
+        />
+      )}
     </div>
   );
 }
