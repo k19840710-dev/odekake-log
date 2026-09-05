@@ -449,7 +449,7 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="p-6 text-center bg-white min-h-screen flex flex-col items-center justify-center font-sans">
+        <div className="p-6 text-center bg-white min-h-dvh flex flex-col items-center justify-center font-sans">
           <AlertCircle className="w-10 h-10 text-red-500 mb-3" />
           <h2 className="text-base font-bold text-neutral-800 mb-1">エラーが発生しました</h2>
           <p className="text-xs text-neutral-500 mb-4 max-w-xs">
@@ -1153,8 +1153,8 @@ function OdekakeLogMain() {
   };
 
   return (
-    <div className="flex justify-center bg-neutral-100 min-h-screen font-sans text-neutral-800 antialiased">
-      <div className="w-full max-w-md lg:max-w-6xl bg-[#fafafa] min-h-screen flex flex-col shadow-xl lg:shadow-none relative pb-20 lg:pb-8 border-x lg:border-x-0 border-neutral-200">
+    <div className="flex justify-center bg-neutral-100 min-h-dvh font-sans text-neutral-800 antialiased">
+      <div className="w-full max-w-md lg:max-w-6xl bg-[#fafafa] min-h-dvh flex flex-col shadow-xl lg:shadow-none relative pb-20 lg:pb-8 border-x lg:border-x-0 border-neutral-200">
 
         {/* ヘッダー */}
         <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md px-4 lg:px-8 py-3 border-b border-neutral-200 flex items-center justify-between">
@@ -1265,7 +1265,7 @@ function OdekakeLogMain() {
                 )}
               </div>
 
-              <div className="flex items-center gap-1.5 text-xs overflow-x-auto no-scrollbar pb-0.5 -mx-4 px-4 lg:mx-0 lg:px-0">
+              <div className="flex items-center gap-1.5 text-xs overflow-x-auto no-scrollbar pt-1.5 pb-1.5 -mx-4 px-4 lg:mx-0 lg:px-0">
                 <button
                   onClick={() => setSelectedCategory('all')}
                   className={`flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap ${
@@ -1844,7 +1844,7 @@ function OdekakeLogMain() {
         {/* 下部ナビゲーション（タイムライン / カレンダー / ＋ / 行きたい / マップ）。
             中央の＋はタブではなく常設のFAB（フローティングアクションボタン）
             で、バーから上に少しはみ出す形で最も目立たせる。 */}
-        <nav className="lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-neutral-200 px-2 pt-2 pb-2 flex items-center justify-between z-40 shadow-lg">
+        <nav className="pb-safe lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-neutral-200 px-2 pt-2 flex items-center justify-between z-40 shadow-lg">
           <button
             onClick={() => setActiveTab('logs')}
             className={`flex-1 flex flex-col items-center gap-1 transition-colors ${
@@ -2646,7 +2646,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-6">
-      <div className="w-full max-w-[540px] bg-white rounded-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+      <div className="w-full max-w-[540px] bg-white rounded-3xl max-h-[92dvh] flex flex-col shadow-2xl overflow-hidden">
         {/* モーダルヘッダー：タイトルと下の区切り線が間延びしないよう、
             下側のpaddingは控えめにする（上側・アイコンは現状維持） */}
         <div className="px-[26px] pt-4 pb-[4px] flex items-center justify-between flex-shrink-0">
@@ -2872,7 +2872,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
         {/* 保存ボタン：入力欄のスクロールに関わらず常に下部に固定表示。
             区切り線は引かず、余白だけで自然につなげる。主操作なので
             他の項目より一回り大きいタップ領域・文字サイズにする */}
-        <div className="px-[26px] pt-1 pb-4 flex-shrink-0">
+        <div className="pb-safe px-[26px] pt-1 flex-shrink-0">
           <button
             type="submit"
             className="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-[15px] rounded-2xl shadow-md transition-all active:scale-[0.98] text-[15px]"
@@ -3352,7 +3352,7 @@ function CalendarVisitRow({ item, onClick }) {
 function DetailListModal({ icon: Icon, title, subtitle, headerExtra, items, onClose, onOpenPlace, onJumpToMap, onEditVisit }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl max-h-[82vh] flex flex-col shadow-2xl overflow-hidden">
+      <div className="w-full max-w-md bg-white rounded-3xl max-h-[82dvh] flex flex-col shadow-2xl overflow-hidden">
         <div className="px-5 py-3.5 border-b border-neutral-150 flex items-start justify-between gap-2">
           <div className="flex items-start gap-2 min-w-0">
             <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -3461,7 +3461,7 @@ function TripDetailModal({ trip, period, items, heroPhoto, isMapsLoaded, onClose
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+      <div className="w-full max-w-md bg-white rounded-3xl max-h-[85dvh] flex flex-col shadow-2xl overflow-hidden">
         {/* ヘッダー：写真があれば横いっぱいのヒーロー画像にタイトルを
             重ねる。写真が無い旅行では、従来どおりの白背景ヘッダーに
             自然にフォールバックする。 */}
@@ -3560,7 +3560,7 @@ function TripFormModal({ onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+      <div className="w-full max-w-md bg-white rounded-3xl max-h-[85dvh] flex flex-col shadow-2xl overflow-hidden">
         <div className="px-5 py-3.5 border-b border-neutral-150 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
@@ -3652,7 +3652,7 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onEditVisit, onDeletePl
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+      <div className="w-full max-w-md bg-white rounded-3xl max-h-[80dvh] flex flex-col shadow-2xl overflow-hidden">
         {/* ヘッダー：カテゴリ／×／店名／住所を1つの塊にまとめ、
             余計な余白や区切り線で間延びさせない。ただし上端に詰まり
             すぎないよう、コンテナ側のpaddingで少しだけ呼吸させる */}
@@ -3941,8 +3941,8 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, t
     <div
       className={`flex flex-col relative rounded-2xl border border-neutral-200 shadow-sm ${
         isLoaded
-          ? 'h-[calc(100vh-135px)] lg:h-[calc(100vh-160px)] overflow-hidden'
-          : 'min-h-[calc(100vh-135px)] lg:min-h-[calc(100vh-160px)] overflow-visible'
+          ? 'h-[calc(100dvh-135px)] lg:h-[calc(100dvh-160px)] overflow-hidden'
+          : 'min-h-[calc(100dvh-135px)] lg:min-h-[calc(100dvh-160px)] overflow-visible'
       }`}
     >
 
@@ -4117,7 +4117,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, t
         const cat = CATEGORIES[selectedSpot.category] || CATEGORIES.other;
         const isWishlistSpot = mapViewMode === 'wishlist';
         return (
-          <div className="absolute inset-x-0 bottom-0 z-30 flex justify-center px-3 pb-3 pointer-events-none">
+          <div className="pb-safe absolute inset-x-0 bottom-0 z-30 flex justify-center px-3 pointer-events-none">
             <div className="sheet-slide-up pointer-events-auto w-full max-w-md bg-white rounded-3xl shadow-2xl border border-neutral-200 p-4">
               <div className="flex items-start justify-between gap-2">
                 <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border ${cat.bg} ${cat.text} ${cat.border}`}>

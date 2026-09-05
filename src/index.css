@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* iPhone Safariでアドレスバー／下部ナビゲーションバーが展開されたときに
+   画面最下部のUI（ボトムナビ・マップのボトムシート・モーダルの保存
+   ボタンなど）が隠れてしまわないよう、ホームインジケーター分の
+   セーフエリアを底面paddingとして確保する。constant()は旧iOS向けの
+   フォールバックで、対応環境ではenv()の宣言が後勝ちで採用される。 */
+.pb-safe {
+  padding-bottom: calc(constant(safe-area-inset-bottom) + 8px);
+  padding-bottom: calc(env(safe-area-inset-bottom) + 8px);
+}
+
 /* ネイティブアプリのような滑らかな横スクロールカルーセル用。
    スクロールバーは非表示にするが、スクロール自体は有効なまま。 */
 .no-scrollbar {
