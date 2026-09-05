@@ -1015,6 +1015,22 @@ function OdekakeLogMain() {
     return Object.entries(areaGroups).map(([area, items]) => ({ area, items }));
   }, [wishlist, searchQuery, selectedCategory]);
 
+  // 5b. 記録・行きたいの登録モーダルで使う「エリア」入力のオートコンプリート候補。
+  // 過去に登録したスポット（訪問済み・行きたい両方）で実際に使われている
+  // エリア名を使用頻度順に集める。似た表記（例:「三軒茶屋」「三軒茶屋駅前」）
+  // を毎回打ち直して表記ゆれが生まれるのを防ぐのが狙い。
+  const existingAreaLabels = useMemo(() => {
+    const counts = new Map();
+    [...places, ...wishlist].forEach(p => {
+      const { areaLabel } = detectArea(p);
+      if (!areaLabel) return;
+      counts.set(areaLabel, (counts.get(areaLabel) || 0) + 1);
+    });
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ja'))
+      .map(([label]) => label);
+  }, [places, wishlist]);
+
   // 5c. 現在地から近い「行きたい場所」（緯度経度を持つものだけが対象）
   const nearbyWishlist = useMemo(() => {
     if (!userLocation) return [];
@@ -1887,6 +1903,7 @@ function OdekakeLogMain() {
             initialDate={prefillDateForNewVisit}
             places={places}
             trips={trips}
+            existingAreaLabels={existingAreaLabels}
             isMapsLoaded={isMapsLoaded}
             onOpenApiKeyModal={() => setShowApiKeyModal(true)}
             onToast={showToast}
@@ -2529,7 +2546,7 @@ function PlaceSearchField({
 // ==========================================
 // 記録モーダル（Places API 検索 ＋ フォールバック対応）
 // ==========================================
-function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialDate, places, trips = [], isMapsLoaded, onOpenApiKeyModal, onToast, onSave }) {
+function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialDate, places, trips = [], existingAreaLabels = [], isMapsLoaded, onOpenApiKeyModal, onToast, onSave }) {
   // 「行った」／「行きたい」の切り替え。既に場所が確定している文脈
   // （編集・再訪・行きたいからの変換）では常に「行った」として扱い、
   // トグル自体も表示しない（真っさらな新規登録＝FABからの起動時のみ選べる）。
@@ -2545,6 +2562,9 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
   // ようにする。空欄のままなら自動判定の結果をそのまま使う（＝上書きは
   // 保存しない）。
   const [areaOverride, setAreaOverride] = useState(initialPlace?.areaOverride || '');
+  // エリア入力欄のオートコンプリート表示状態。過去に使ったエリア名を
+  // 候補として出し、似た名前の打ち直しによる表記ゆれを防ぐ。
+  const [isAreaFieldFocused, setIsAreaFieldFocused] = useState(false);
   const [photos, setPhotos] = useState(initialVisit?.photos || []);
   const [tripId, setTripId] = useState(initialVisit?.tripId || '');
   const [isProcessingPhotos, setIsProcessingPhotos] = useState(false);
@@ -2556,6 +2576,16 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
   // 差し替わらないよう検索欄をロックする。ロックを外すのは明示操作のみ。
   const isKnownExistingPlace = !!(initialPlace && places.some(p => p.id === initialPlace.id));
   const [isPlaceLocked, setIsPlaceLocked] = useState(isKnownExistingPlace);
+
+  // エリア入力欄のオートコンプリート候補。入力中のテキストを含むものに
+  // 絞り込み、未入力なら使用頻度順の上位を表示する。
+  const areaSuggestions = useMemo(() => {
+    const q = areaOverride.trim().toLowerCase();
+    const filtered = q
+      ? existingAreaLabels.filter(label => label.toLowerCase().includes(q))
+      : existingAreaLabels;
+    return filtered.slice(0, 8);
+  }, [areaOverride, existingAreaLabels]);
 
   const handlePhotoFilesSelected = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -2760,8 +2790,11 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
 
           {/* エリア：住所から自動判定するが、ユーザーが自由に変更・微調整
               できるようにする。空欄のままなら自動判定の結果をそのまま
-              使う（保存時は上書きしない）。 */}
-          <div>
+              使う（保存時は上書きしない）。過去に使ったエリア名をオート
+              コンプリート候補として出し、表記ゆれ（似た名前の打ち直し）
+              を防ぐ。iOS Safariはネイティブのdatalistサジェストが機能
+              しないため、自前のドロップダウンで実装する。 */}
+          <div className="relative">
             <label className="block text-[13px] font-bold text-neutral-700 mb-[5px]">
               エリア（自動判定・変更可）
             </label>
@@ -2769,9 +2802,32 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
               type="text"
               value={areaOverride}
               onChange={(e) => setAreaOverride(e.target.value)}
+              onFocus={() => setIsAreaFieldFocused(true)}
+              onBlur={() => setIsAreaFieldFocused(false)}
               placeholder={selectedPlace ? `自動判定: ${detectArea(selectedPlace).areaLabel}` : 'エリア名'}
               className="w-full bg-neutral-50 border border-neutral-400 rounded-xl shadow-sm px-3 py-[7px] text-[12.5px] text-neutral-800 focus:outline-none focus:border-sky-400"
             />
+
+            {isAreaFieldFocused && areaSuggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-neutral-200 max-h-40 overflow-y-auto z-50 divide-y divide-neutral-100">
+                {areaSuggestions.map((label) => (
+                  <button
+                    key={label}
+                    type="button"
+                    // mousedownでpreventDefaultし、ボタン押下時にinputが先に
+                    // blurしてドロップダウンが閉じてしまう競合を防ぐ
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      setAreaOverride(label);
+                      setIsAreaFieldFocused(false);
+                    }}
+                    className="w-full text-left px-3 py-2 hover:bg-sky-50 transition-colors text-[12.5px] text-neutral-700"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* 行きたいモードのみ：参考リンク（Instagram・食べログ等） */}
