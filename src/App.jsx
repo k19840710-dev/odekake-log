@@ -1132,6 +1132,18 @@ function OdekakeLogMain() {
     setIsRecordModalOpen(true);
   };
 
+  // 「行きたい」項目自体（店名・カテゴリー・エリア・メモなど）を編集する。
+  // 訪問記録への変換とは違い、行きたいリストに留まったまま内容だけ
+  // 書き直す。wishItemはRecordFormModalが保存するwishDataと同じ
+  // フラットな形（memo・referenceUrl・plannedDateを直接持つ）なので、
+  // そのままinitialPlaceとして渡せる。
+  const handleEditWishlistItem = (wishItem) => {
+    setConvertingWishlistId(null);
+    setEditingVisit(null);
+    setEditingPlace(wishItem);
+    setIsRecordModalOpen(true);
+  };
+
   // 現在地から「行きたい場所」を近い順に確認する
   const handleFindNearbyWishlist = () => {
     if (!navigator.geolocation) {
@@ -1782,6 +1794,13 @@ function OdekakeLogMain() {
                                   </a>
                                 )}
                                 <button
+                                  onClick={() => handleEditWishlistItem(wish)}
+                                  className="text-neutral-400 hover:text-neutral-800 p-1"
+                                  title="行きたい場所を編集"
+                                >
+                                  <Edit2 className="w-[18px] h-[18px]" />
+                                </button>
+                                <button
                                   onClick={() => handleDeleteWishlistItem(wish.id)}
                                   className="text-neutral-400 hover:text-red-600 p-1"
                                   title="行きたい場所から削除"
@@ -1918,6 +1937,11 @@ function OdekakeLogMain() {
             initialVisit={editingVisit}
             initialPlace={editingPlace}
             initialDate={prefillDateForNewVisit}
+            // editingPlaceのidが既存の行きたいリストの項目と一致する
+            // 場合のみ「行きたい場所自体の編集」。訪問記録への変換
+            // （handleConvertWishlistToVisit）は新規UUIDを振るため
+            // 一致せず、通常通り「行った」モードで開く。
+            initialMode={editingPlace && wishlist.some(w => w.id === editingPlace.id) ? 'wishlist' : 'visited'}
             places={places}
             trips={trips}
             existingAreaLabels={existingAreaLabels}
@@ -1926,6 +1950,20 @@ function OdekakeLogMain() {
             onToast={showToast}
             onSave={({ mode, placeData, visitData, wishData }) => {
               if (mode === 'wishlist') {
+                const editingIndex = wishlist.findIndex(w => w.id === wishData.id);
+                if (editingIndex >= 0) {
+                  // 既存の行きたい項目自体の編集：追加ではなく上書き
+                  const updatedWishlist = [...wishlist];
+                  updatedWishlist[editingIndex] = wishData;
+                  saveWishlist(updatedWishlist);
+                  showToast('行きたい場所を更新しました。');
+                  setIsRecordModalOpen(false);
+                  setEditingVisit(null);
+                  setEditingPlace(null);
+                  setConvertingWishlistId(null);
+                  setPrefillDateForNewVisit(null);
+                  return;
+                }
                 // 同じ場所（googlePlaceId）が既にリストにあれば重複登録しない
                 const existingIndex = wishlist.findIndex(w => w.googlePlaceId === wishData.googlePlaceId);
                 if (existingIndex >= 0) {
@@ -2575,16 +2613,22 @@ function PlaceSearchField({
 // ==========================================
 // 記録モーダル（Places API 検索 ＋ フォールバック対応）
 // ==========================================
-function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialDate, places, trips = [], existingAreaLabels = [], isMapsLoaded, onOpenApiKeyModal, onToast, onSave }) {
+function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialDate, initialMode = 'visited', places, trips = [], existingAreaLabels = [], isMapsLoaded, onOpenApiKeyModal, onToast, onSave }) {
   // 「行った」／「行きたい」の切り替え。既に場所が確定している文脈
-  // （編集・再訪・行きたいからの変換）では常に「行った」として扱い、
-  // トグル自体も表示しない（真っさらな新規登録＝FABからの起動時のみ選べる）。
+  // （編集・再訪・行きたいからの変換・行きたい場所自体の編集）では
+  // 常に固定モードとして扱い、トグル自体も表示しない（真っさらな
+  // 新規登録＝FABからの起動時のみ選べる）。
   const canToggleMode = !initialVisit && !initialPlace;
-  const [mode, setMode] = useState('visited'); // 'visited' | 'wishlist'
-  const [date, setDate] = useState(initialVisit?.date || initialDate || getTodayDateString());
+  // 行きたい場所の編集では、initialPlace自体がwishlistの1件（memo・
+  // referenceUrl・plannedDateを直接持つフラットなオブジェクト）になる。
+  const isEditingWish = initialMode === 'wishlist' && !!initialPlace;
+  const [mode, setMode] = useState(initialMode); // 'visited' | 'wishlist'
+  const [date, setDate] = useState(
+    isEditingWish ? (initialPlace?.plannedDate || '') : (initialVisit?.date || initialDate || getTodayDateString())
+  );
   const [rating, setRating] = useState(initialVisit?.rating || 5);
-  const [note, setNote] = useState(initialVisit?.note || '');
-  const [referenceUrl, setReferenceUrl] = useState('');
+  const [note, setNote] = useState(isEditingWish ? (initialPlace?.memo || '') : (initialVisit?.note || ''));
+  const [referenceUrl, setReferenceUrl] = useState(isEditingWish ? (initialPlace?.referenceUrl || '') : '');
   const [category, setCategory] = useState(initialPlace?.category || 'food');
   const [selectedPlace, setSelectedPlace] = useState(initialPlace || null);
   // エリアは住所から自動判定するが、ユーザーが自由に上書き・微調整できる
@@ -2594,16 +2638,17 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
   // エリア入力欄のオートコンプリート表示状態。過去に使ったエリア名を
   // 候補として出し、似た名前の打ち直しによる表記ゆれを防ぐ。
   const [isAreaFieldFocused, setIsAreaFieldFocused] = useState(false);
-  const [photos, setPhotos] = useState(initialVisit?.photos || []);
+  const [photos, setPhotos] = useState(isEditingWish ? (initialPlace?.photos || []) : (initialVisit?.photos || []));
   const [tripId, setTripId] = useState(initialVisit?.tripId || '');
   const [isProcessingPhotos, setIsProcessingPhotos] = useState(false);
   const photoInputRef = useRef(null);
 
   const MAX_PHOTOS = 5;
 
-  // 場所が既に確定している（編集 / 再訪記録）場合は、誤って別の場所に
-  // 差し替わらないよう検索欄をロックする。ロックを外すのは明示操作のみ。
-  const isKnownExistingPlace = !!(initialPlace && places.some(p => p.id === initialPlace.id));
+  // 場所が既に確定している（編集 / 再訪記録 / 行きたい場所の編集）場合は、
+  // 誤って別の場所に差し替わらないよう検索欄をロックする。ロックを
+  // 外すのは明示操作のみ。
+  const isKnownExistingPlace = !!(initialPlace && (places.some(p => p.id === initialPlace.id) || isEditingWish));
   const [isPlaceLocked, setIsPlaceLocked] = useState(isKnownExistingPlace);
 
   // エリア入力欄のオートコンプリート候補。入力中のテキストを含むものに
@@ -2700,7 +2745,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
               <MapPin className="w-[24px] h-[24px]" />
             </div>
             <h3 className="text-[17px] font-bold text-neutral-900">
-              {mode === 'wishlist' ? '行きたい場所を追加' : (initialVisit ? '訪問記録の編集' : '行った場所を記録')}
+              {mode === 'wishlist' ? (isEditingWish ? '行きたい場所の編集' : '行きたい場所を追加') : (initialVisit ? '訪問記録の編集' : '行った場所を記録')}
             </h3>
           </div>
           <button onClick={onClose} className="p-1.5 -mr-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg">
@@ -2965,7 +3010,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
             type="submit"
             className="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-[15px] rounded-2xl shadow-md transition-all active:scale-[0.98] text-[15px]"
           >
-            {mode === 'wishlist' ? '行きたいリストに追加' : (initialVisit ? '記録を更新する' : 'この内容で記録する')}
+            {mode === 'wishlist' ? (isEditingWish ? '行きたい場所を更新する' : '行きたいリストに追加') : (initialVisit ? '記録を更新する' : 'この内容で記録する')}
           </button>
         </div>
         </form>
