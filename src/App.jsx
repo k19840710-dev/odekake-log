@@ -81,6 +81,24 @@ function buildEmojiMarkerIcon(emoji, color) {
   };
 }
 
+// カレンダーの「この日のルートをマップで見る」用：訪問順を①②③...の
+// ように番号で示すピンアイコン。カテゴリーの絵文字ピンとは見た目を
+// はっきり変え、ルート表示中だと一目で分かるようにする。
+function buildNumberedMarkerIcon(number, color = '#0284c7') {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+      <circle cx="16" cy="16" r="14" fill="${color}" stroke="#ffffff" stroke-width="2.5"/>
+      <text x="16" y="21" font-size="14" font-weight="bold" text-anchor="middle" fill="#ffffff" font-family="sans-serif">${number}</text>
+    </svg>
+  `.trim();
+
+  return {
+    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+    scaledSize: new window.google.maps.Size(32, 32),
+    anchor: new window.google.maps.Point(16, 16)
+  };
+}
+
 // Google Places types からカテゴリー推定
 function detectCategoryFromTypes(types = []) {
   if (!types || !Array.isArray(types)) return 'food';
@@ -297,32 +315,63 @@ function formatDistance(meters) {
 
 // ==========================================
 // 画像圧縮ユーティリティ（訪問記録の写真）
-// 端末のブラウザ内(localStorage)に保存するため、
-// 長辺を縮小しJPEGで再圧縮して容量を抑える
-// ==========================================
-function compressImageFile(file, maxDimension = 900, quality = 0.72) {
+// 端末のブラウザ内(localStorage)に保存するため、長辺を縮小しJPEGで
+// 再圧縮して容量を抑える。スマホの高解像度写真だと1回の圧縮だけでは
+// 目標サイズに収まらないことがあるため、画質→解像度の順に段階的に
+// 落としながら、保存後のBase64文字列が目標バイト数以下になるまで
+// 繰り返す（localStorageの容量超過エラーを避けるのが狙い）。
+function compressImageFile(file, {
+  maxDimension = 1000,
+  minDimension = 500,
+  initialQuality = 0.8,
+  minQuality = 0.4,
+  targetBytes = 200 * 1024
+} = {}) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
       const img = new Image();
       img.onload = () => {
-        let { width, height } = img;
-        if (width > maxDimension || height > maxDimension) {
-          if (width >= height) {
-            height = Math.round(height * (maxDimension / width));
-            width = maxDimension;
-          } else {
-            width = Math.round(width * (maxDimension / height));
-            height = maxDimension;
-          }
-        }
         try {
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', quality));
+          let dimension = maxDimension;
+          let dataUrl = null;
+
+          // 外側ループ：解像度を段階的に縮小
+          while (true) {
+            let { width, height } = img;
+            if (width > dimension || height > dimension) {
+              if (width >= height) {
+                height = Math.round(height * (dimension / width));
+                width = dimension;
+              } else {
+                width = Math.round(width * (dimension / height));
+                height = dimension;
+              }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // 内側ループ：この解像度のまま画質を段階的に落とす
+            let quality = initialQuality;
+            let candidate = canvas.toDataURL('image/jpeg', quality);
+            while (candidate.length > targetBytes && quality > minQuality) {
+              quality = Math.max(minQuality, quality - 0.1);
+              candidate = canvas.toDataURL('image/jpeg', quality);
+            }
+            dataUrl = candidate;
+
+            if (dataUrl.length <= targetBytes || dimension <= minDimension) {
+              break;
+            }
+            // 最低画質まで下げても目標に届かない場合は、解像度自体を
+            // さらに縮小してやり直す。
+            dimension = Math.max(minDimension, Math.round(dimension * 0.85));
+          }
+
+          resolve(dataUrl);
         } catch (err) {
           reject(err);
         }
@@ -629,6 +678,9 @@ function OdekakeLogMain() {
   });
   const [calendarSelectedDate, setCalendarSelectedDate] = useState(getTodayDateString());
   const [prefillDateForNewVisit, setPrefillDateForNewVisit] = useState(null);
+  // 旅行詳細モーダルの「＋ この旅行にスポットを追加」から新規記録を
+  // 開いたときに、その旅行へ明示的に紐づけるためのID。
+  const [prefillTripIdForNewVisit, setPrefillTripIdForNewVisit] = useState(null);
 
   // 近くの保存済み（行きたい）スポット
   const [userLocation, setUserLocation] = useState(null); // { lat, lng }
@@ -646,6 +698,11 @@ function OdekakeLogMain() {
   const [selectedPlaceDetail, setSelectedPlaceDetail] = useState(null);
   const [targetPlaceForMap, setTargetPlaceForMap] = useState(null);
   const [targetBoundsForMap, setTargetBoundsForMap] = useState(null);
+  // カレンダーの「この日のルートをマップで見る」：訪問順に並んだ
+  // その日のスポットだけをマップに番号ピンで表示するモード。
+  // nullの間は通常のマップ表示（行った／行きたい・検索・カテゴリー）。
+  const [dayRouteSpots, setDayRouteSpots] = useState(null);
+  const [dayRouteLabel, setDayRouteLabel] = useState('');
 
   // トースト通知（alert()の代わりに使う軽量な通知）
   const [toastMessage, setToastMessage] = useState('');
@@ -741,6 +798,11 @@ function OdekakeLogMain() {
       localStorage.setItem(STORAGE_WISHLIST_KEY, JSON.stringify(newWishlist));
     } catch (e) {
       console.warn('Failed to save wishlist:', e);
+      if (e && (e.name === 'QuotaExceededError' || e.code === 22)) {
+        showToast('写真の容量が大きく、保存できませんでした。写真を減らすか画質を下げてお試しください。');
+      } else {
+        showToast('保存に失敗しました。');
+      }
     }
   };
 
@@ -912,7 +974,16 @@ function OdekakeLogMain() {
 
     const summaries = trips.map(trip => {
       let items = visits
-        .filter(v => v.tripId === trip.id)
+        .filter(v => {
+          // 明示的にこの旅行に紐づけ済みの記録はそのまま対象。
+          if (v.tripId === trip.id) return true;
+          // 既に別の旅行に明示的に紐づいている記録は対象外。
+          if (v.tripId) return false;
+          // どの旅行にも紐づいていない記録は、日付が旅行期間内であれば
+          // 自動的にこの旅行のスポットとして扱う（新しく記録した訪問が
+          // 既存の旅行と自動で連動するようにするため）。
+          return v.date >= trip.startDate && v.date <= trip.endDate;
+        })
         .map(v => {
           const place = places.find(p => p.id === v.placeId);
           return {
@@ -1080,6 +1151,22 @@ function OdekakeLogMain() {
 
   const handleJumpToMap = (place) => {
     setTargetPlaceForMap(place);
+    setActiveTab('map');
+  };
+
+  // カレンダーの「この日のルートをマップで見る」：その日の訪問記録の
+  // 並び順どおりに①②③...の番号ピンで表示する。位置情報を持つ
+  // スポットが1つも無ければ、マップを開かずトーストで知らせる。
+  const handleViewDayRoute = (dateStr, dayItems) => {
+    const validPlaces = dayItems
+      .map(item => item.place)
+      .filter(p => p && p.lat && p.lng);
+    if (validPlaces.length === 0) {
+      showToast('この日は地図に表示できる位置情報を持つスポットがありません。');
+      return;
+    }
+    setDayRouteSpots(validPlaces);
+    setDayRouteLabel(formatDateWithWeekday(dateStr));
     setActiveTab('map');
   };
 
@@ -1363,8 +1450,11 @@ function OdekakeLogMain() {
               切り替え（月別/旅行別/エリア別）とは、余白＋薄い
               区切り線で別グループだと分かるようにする。 */}
           {(activeTab === 'logs' || activeTab === 'wishlist') && (
-            <div className="mb-4 space-y-2 lg:max-w-md">
-              <div className="relative">
+            <div className="mb-4 space-y-2">
+              {/* 検索バーは広い画面でも間延びしないようmd以上で幅を
+                  絞るが、下のカテゴリーピルは同じ制約を受けず全幅を
+                  使えるようにする（別のdivに分けたのはこのため）。 */}
+              <div className="relative md:max-w-md">
                 <Search className="w-[21px] h-[21px] absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                 <input
                   type="text"
@@ -1383,7 +1473,12 @@ function OdekakeLogMain() {
                 )}
               </div>
 
-              <div className="flex items-center gap-1.5 text-xs overflow-x-auto no-scrollbar pt-1.5 pb-1.5 -mx-4 px-4 lg:mx-0 lg:px-0">
+              {/* カテゴリーピル：スマホでは従来通り1行の横スクロール
+                  カルーセルのままにし（ネイティブアプリらしい操作感を
+                  維持）、タブレット・PC（md以上）では横スクロール＋
+                  途中で途切れる代わりに、全幅を使ったflex-wrapで
+                  自然に複数行へ折り返す。 */}
+              <div className="flex items-center gap-1.5 text-xs overflow-x-auto no-scrollbar pt-1.5 pb-1.5 -mx-4 px-4 md:flex-wrap md:overflow-visible md:mx-0 md:px-0">
                 <button
                   onClick={() => setSelectedCategory('all')}
                   className={`flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap ${
@@ -1598,6 +1693,7 @@ function OdekakeLogMain() {
                 setEditingPlace(null);
                 setIsRecordModalOpen(true);
               }}
+              onViewDayRoute={handleViewDayRoute}
             />
           )}
 
@@ -1837,6 +1933,9 @@ function OdekakeLogMain() {
               wishlist={wishlist}
               targetPlace={targetPlaceForMap}
               targetBounds={targetBoundsForMap}
+              daySpots={dayRouteSpots}
+              dayRouteLabel={dayRouteLabel}
+              onExitDayRoute={() => setDayRouteSpots(null)}
               onToast={showToast}
               onSelectPlace={(p) => setSelectedPlaceDetail(p)}
               onConvertWishlistToVisit={handleConvertWishlistToVisit}
@@ -1933,10 +2032,12 @@ function OdekakeLogMain() {
               setEditingPlace(null);
               setConvertingWishlistId(null);
               setPrefillDateForNewVisit(null);
+              setPrefillTripIdForNewVisit(null);
             }}
             initialVisit={editingVisit}
             initialPlace={editingPlace}
             initialDate={prefillDateForNewVisit}
+            initialTripId={prefillTripIdForNewVisit}
             // editingPlaceのidが既存の行きたいリストの項目と一致する
             // 場合のみ「行きたい場所自体の編集」。訪問記録への変換
             // （handleConvertWishlistToVisit）は新規UUIDを振るため
@@ -1962,6 +2063,7 @@ function OdekakeLogMain() {
                   setEditingPlace(null);
                   setConvertingWishlistId(null);
                   setPrefillDateForNewVisit(null);
+                  setPrefillTripIdForNewVisit(null);
                   return;
                 }
                 // 同じ場所（googlePlaceId）が既にリストにあれば重複登録しない
@@ -1977,6 +2079,7 @@ function OdekakeLogMain() {
                 setEditingPlace(null);
                 setConvertingWishlistId(null);
                 setPrefillDateForNewVisit(null);
+                setPrefillTripIdForNewVisit(null);
                 return;
               }
 
@@ -2025,6 +2128,7 @@ function OdekakeLogMain() {
               setEditingPlace(null);
               setConvertingWishlistId(null);
               setPrefillDateForNewVisit(null);
+              setPrefillTripIdForNewVisit(null);
             }}
           />
         )}
@@ -2042,7 +2146,11 @@ function OdekakeLogMain() {
           const detailTrip = trips.find(t => t.id === openTripDetailId);
           if (!detailTrip) return null;
           const detailItems = visits
-            .filter(v => v.tripId === detailTrip.id)
+            .filter(v => {
+              if (v.tripId === detailTrip.id) return true;
+              if (v.tripId) return false;
+              return v.date >= detailTrip.startDate && v.date <= detailTrip.endDate;
+            })
             .map(v => ({
               ...v,
               place: places.find(p => p.id === v.placeId) || { name: '未登録の場所', address: '', category: 'other', lat: 0, lng: 0 }
@@ -2065,6 +2173,19 @@ function OdekakeLogMain() {
               onClose={() => setOpenTripDetailId(null)}
               onOpenPlace={(place) => { setOpenTripDetailId(null); setSelectedPlaceDetail(place); }}
               onJumpToMap={(place) => { setOpenTripDetailId(null); handleJumpToMap(place); }}
+              onAddSpot={() => {
+                setOpenTripDetailId(null);
+                setEditingVisit(null);
+                setEditingPlace(null);
+                // 今日が旅行期間内ならその日を、そうでなければ旅行の
+                // 開始日を初期値にする。
+                const today = getTodayDateString();
+                setPrefillDateForNewVisit(
+                  (today >= detailTrip.startDate && today <= detailTrip.endDate) ? today : detailTrip.startDate
+                );
+                setPrefillTripIdForNewVisit(detailTrip.id);
+                setIsRecordModalOpen(true);
+              }}
               onSetCoverPhoto={(src) => {
                 saveTrips(trips.map(t => t.id === detailTrip.id ? { ...t, coverPhoto: src } : t));
               }}
@@ -2613,7 +2734,7 @@ function PlaceSearchField({
 // ==========================================
 // 記録モーダル（Places API 検索 ＋ フォールバック対応）
 // ==========================================
-function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialDate, initialMode = 'visited', places, trips = [], existingAreaLabels = [], isMapsLoaded, onOpenApiKeyModal, onToast, onSave }) {
+function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialDate, initialTripId = null, initialMode = 'visited', places, trips = [], existingAreaLabels = [], isMapsLoaded, onOpenApiKeyModal, onToast, onSave }) {
   // 「行った」／「行きたい」の切り替え。既に場所が確定している文脈
   // （編集・再訪・行きたいからの変換・行きたい場所自体の編集）では
   // 常に固定モードとして扱い、トグル自体も表示しない（真っさらな
@@ -2639,7 +2760,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
   // 候補として出し、似た名前の打ち直しによる表記ゆれを防ぐ。
   const [isAreaFieldFocused, setIsAreaFieldFocused] = useState(false);
   const [photos, setPhotos] = useState(isEditingWish ? (initialPlace?.photos || []) : (initialVisit?.photos || []));
-  const [tripId, setTripId] = useState(initialVisit?.tripId || '');
+  const [tripId, setTripId] = useState(initialVisit?.tripId || initialTripId || '');
   const [isProcessingPhotos, setIsProcessingPhotos] = useState(false);
   const photoInputRef = useRef(null);
 
@@ -3394,7 +3515,7 @@ function buildCalendarCells(year, month) {
 // ==========================================
 const CALENDAR_WEEKDAY_LABELS = ['日', '月', '火', '水', '木', '金', '土'];
 
-function CalendarViewComponent({ calendarMonth, onMonthChange, visitsByDate, selectedDate, onSelectDate, onOpenPlace, onAddForDate }) {
+function CalendarViewComponent({ calendarMonth, onMonthChange, visitsByDate, selectedDate, onSelectDate, onOpenPlace, onAddForDate, onViewDayRoute }) {
   const { year, month } = calendarMonth;
   const cells = useMemo(() => buildCalendarCells(year, month), [year, month]);
   const todayStr = getTodayDateString();
@@ -3511,6 +3632,15 @@ function CalendarViewComponent({ calendarMonth, onMonthChange, visitsByDate, sel
               </div>
             ) : (
               <div className="space-y-2">
+                {selectedItems.some(i => i.place && i.place.lat && i.place.lng) && (
+                  <button
+                    onClick={() => onViewDayRoute(selectedDate, selectedItems)}
+                    className="w-full bg-sky-50 hover:bg-sky-100 text-sky-700 font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-sky-200 transition-colors mb-1"
+                  >
+                    <MapPinned className="w-[16px] h-[16px]" />
+                    <span>この日のルートをマップで見る</span>
+                  </button>
+                )}
                 {selectedItems.map(item => (
                   <CalendarVisitRow
                     key={item.id}
@@ -3666,7 +3796,7 @@ function TripMiniMap({ isMapsLoaded, places }) {
 // 付きの訪問リストで、旅行そのものを1つのまとまりとして振り返れる
 // ようにする。
 // ==========================================
-function TripDetailModal({ trip, period, items, heroPhoto, isMapsLoaded, onClose, onOpenPlace, onJumpToMap, onEditVisit, onDeleteTrip, onSetCoverPhoto }) {
+function TripDetailModal({ trip, period, items, heroPhoto, isMapsLoaded, onClose, onOpenPlace, onJumpToMap, onEditVisit, onDeleteTrip, onSetCoverPhoto, onAddSpot }) {
   const [showCoverPicker, setShowCoverPicker] = useState(false);
 
   const uniquePlaces = useMemo(() => {
@@ -3758,6 +3888,14 @@ function TripDetailModal({ trip, period, items, heroPhoto, isMapsLoaded, onClose
               <span>旅行を削除</span>
             </button>
           </div>
+
+          <button
+            onClick={onAddSpot}
+            className="w-full bg-sky-50 hover:bg-sky-100 text-sky-700 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-sky-200 transition-colors"
+          >
+            <Plus className="w-[16px] h-[16px]" />
+            <span>この旅行にスポットを追加</span>
+          </button>
 
           {trip.memo && (
             <p className="text-xs text-neutral-600 bg-neutral-50 p-2.5 rounded-xl border border-neutral-100 leading-relaxed">
@@ -4019,7 +4157,7 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onEditVisit, onDeletePl
 // ==========================================
 // マップ表示コンポーネント（Google Maps ＆ プレビューフォールバック）
 // ==========================================
-function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, targetBounds, onSelectPlace, onConvertWishlistToVisit, onRequestAddSpot, onOpenApiKeyModal, onToast }) {
+function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, targetBounds, daySpots, dayRouteLabel, onExitDayRoute, onSelectPlace, onConvertWishlistToVisit, onRequestAddSpot, onOpenApiKeyModal, onToast }) {
   const mapRef = useRef(null);
   const googleMapInstanceRef = useRef(null);
   const markersRef = useRef([]);
@@ -4083,13 +4221,40 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, t
     };
   }, [isLoaded]);
 
-  // マーカー更新
+  // マーカー更新：カレンダーから「この日のルート」を開いている間は、
+  // 通常の行った／行きたい・検索・カテゴリー絞り込みを無視し、その日の
+  // スポットだけを訪問順の番号ピン（①②③...）で表示する。
   useEffect(() => {
     if (!googleMapInstanceRef.current || !window.google?.maps) return;
     const map = googleMapInstanceRef.current;
 
     markersRef.current.forEach(m => m.setMap(null));
     markersRef.current = [];
+
+    const bounds = new window.google.maps.LatLngBounds();
+
+    if (daySpots && daySpots.length > 0) {
+      daySpots.forEach((place, idx) => {
+        const position = { lat: place.lat, lng: place.lng };
+        const marker = new window.google.maps.Marker({
+          position,
+          map,
+          title: `${idx + 1}. ${place.name}`,
+          icon: buildNumberedMarkerIcon(idx + 1)
+        });
+        marker.addListener('click', () => setSelectedSpot(place));
+        markersRef.current.push(marker);
+        bounds.extend(position);
+      });
+
+      if (daySpots.length === 1) {
+        map.panTo(bounds.getCenter());
+        map.setZoom(15);
+      } else {
+        map.fitBounds(bounds, { top: 60, bottom: 60, left: 40, right: 40 });
+      }
+      return;
+    }
 
     let filtered = sourceList.filter(p => p.lat && p.lng);
     if (mapCategory !== 'all') {
@@ -4099,8 +4264,6 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, t
       const q = mapSearch.toLowerCase();
       filtered = filtered.filter(p => p.name.toLowerCase().includes(q) || (p.address && p.address.toLowerCase().includes(q)));
     }
-
-    const bounds = new window.google.maps.LatLngBounds();
 
     filtered.forEach(place => {
       const cat = CATEGORIES[place.category] || CATEGORIES.other;
@@ -4125,7 +4288,7 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, t
       map.fitBounds(bounds, { top: 50, bottom: 50, left: 30, right: 30 });
       if (filtered.length === 1) map.setZoom(15);
     }
-  }, [sourceList, mapCategory, mapSearch, targetPlace, isLoaded]);
+  }, [sourceList, mapCategory, mapSearch, targetPlace, isLoaded, daySpots]);
 
   // targetPlace 移動
   useEffect(() => {
@@ -4205,47 +4368,68 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, t
       }`}
     >
 
-      {/* 検索・カテゴリー */}
+      {/* 検索・カテゴリー：カレンダーから「この日のルート」を開いている
+          間は、行った／行きたい切り替えや検索の代わりに、ルート表示中
+          であることと解除ボタンだけを見せるバナーに差し替える
+          （フィルターは効かないモードなので操作自体を隠す）。 */}
       <div ref={overlayRef} className="absolute top-3 left-3 right-3 z-20 flex flex-col gap-2 pointer-events-none">
-        {/* 行った／行きたい 切り替え */}
-        <div className="pointer-events-auto flex justify-center">
-          <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md rounded-full p-1 shadow-md border border-neutral-200 text-xs">
-            <button
-              onClick={() => setMapViewMode('visited')}
-              className={`flex items-center gap-1 px-3 py-1 rounded-full font-bold transition-colors ${
-                mapViewMode === 'visited' ? 'bg-sky-600 text-white' : 'text-neutral-500'
-              }`}
-            >
-              <Compass className="w-[18px] h-[18px]" />
-              <span>行った ({places.length})</span>
-            </button>
-            <button
-              onClick={() => setMapViewMode('wishlist')}
-              className={`flex items-center gap-1 px-3 py-1 rounded-full font-bold transition-colors ${
-                mapViewMode === 'wishlist' ? 'bg-sky-600 text-white' : 'text-neutral-500'
-              }`}
-            >
-              <Bookmark className="w-[18px] h-[18px]" />
-              <span>行きたい ({wishlist.length})</span>
-            </button>
+        {daySpots && daySpots.length > 0 ? (
+          <div className="pointer-events-auto flex justify-center">
+            <div className="flex items-center gap-2 bg-sky-600 text-white rounded-full pl-4 pr-2 py-1.5 shadow-md text-xs font-bold">
+              <MapPinned className="w-[16px] h-[16px] flex-shrink-0" />
+              <span className="truncate">{dayRouteLabel}のルート（{daySpots.length}件）</span>
+              <button
+                onClick={onExitDayRoute}
+                className="p-1 hover:bg-white/20 rounded-full flex-shrink-0"
+                title="ルート表示を解除"
+              >
+                <X className="w-[16px] h-[16px]" />
+              </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <>
+            {/* 行った／行きたい 切り替え */}
+            <div className="pointer-events-auto flex justify-center">
+              <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md rounded-full p-1 shadow-md border border-neutral-200 text-xs">
+                <button
+                  onClick={() => setMapViewMode('visited')}
+                  className={`flex items-center gap-1 px-3 py-1 rounded-full font-bold transition-colors ${
+                    mapViewMode === 'visited' ? 'bg-sky-600 text-white' : 'text-neutral-500'
+                  }`}
+                >
+                  <Compass className="w-[18px] h-[18px]" />
+                  <span>行った ({places.length})</span>
+                </button>
+                <button
+                  onClick={() => setMapViewMode('wishlist')}
+                  className={`flex items-center gap-1 px-3 py-1 rounded-full font-bold transition-colors ${
+                    mapViewMode === 'wishlist' ? 'bg-sky-600 text-white' : 'text-neutral-500'
+                  }`}
+                >
+                  <Bookmark className="w-[18px] h-[18px]" />
+                  <span>行きたい ({wishlist.length})</span>
+                </button>
+              </div>
+            </div>
 
-        <div className="pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-md border border-neutral-200 flex items-center px-3 py-1.5">
-          <Search className="w-[18px] h-[18px] text-neutral-400 mr-2" />
-          <input
-            type="text"
-            placeholder="マップ上の場所を検索..."
-            value={mapSearch}
-            onChange={(e) => setMapSearch(e.target.value)}
-            className="w-full bg-transparent text-xs text-neutral-800 focus:outline-none"
-          />
-          {mapSearch && (
-            <button onClick={() => setMapSearch('')} className="text-neutral-400">
-              <X className="w-[18px] h-[18px]" />
-            </button>
-          )}
-        </div>
+            <div className="pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-md border border-neutral-200 flex items-center px-3 py-1.5">
+              <Search className="w-[18px] h-[18px] text-neutral-400 mr-2" />
+              <input
+                type="text"
+                placeholder="マップ上の場所を検索..."
+                value={mapSearch}
+                onChange={(e) => setMapSearch(e.target.value)}
+                className="w-full bg-transparent text-xs text-neutral-800 focus:outline-none"
+              />
+              {mapSearch && (
+                <button onClick={() => setMapSearch('')} className="text-neutral-400">
+                  <X className="w-[18px] h-[18px]" />
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* 現在地ボタン */}
@@ -4260,8 +4444,10 @@ function MapViewerComponent({ isLoaded, apiKey, places, wishlist, targetPlace, t
 
       {/* カテゴリーの絞り込み：地図が広く見えるよう、上のオーバーレイから
           外して右下に丸いフィルターボタンとして独立配置する。選択中は
-          バッジで件数を示し、タップでポップアップの選択肢を開閉する。 */}
-      {isLoaded && (
+          バッジで件数を示し、タップでポップアップの選択肢を開閉する。
+          「この日のルート」表示中はフィルター自体が効かないモードな
+          ので、混乱を避けるためボタンごと隠す。 */}
+      {isLoaded && !(daySpots && daySpots.length > 0) && (
         <div className="absolute bottom-[60px] right-4 z-20 flex flex-col items-end gap-2">
           {isCategoryFilterOpen && (
             <div className="bg-white rounded-2xl shadow-xl border border-neutral-200 p-2 w-48 max-h-64 overflow-y-auto">
