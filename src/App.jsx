@@ -315,17 +315,18 @@ function formatDistance(meters) {
 
 // ==========================================
 // 画像圧縮ユーティリティ（訪問記録の写真）
-// 端末のブラウザ内(localStorage)に保存するため、長辺を縮小しJPEGで
-// 再圧縮して容量を抑える。スマホの高解像度写真だと1回の圧縮だけでは
-// 目標サイズに収まらないことがあるため、画質→解像度の順に段階的に
-// 落としながら、保存後のBase64文字列が目標バイト数以下になるまで
-// 繰り返す（localStorageの容量超過エラーを避けるのが狙い）。
+// 写真本体は後述のIndexedDBに保存するため容量上限の心配はほぼ無いが、
+// 読み込み・表示のパフォーマンスと端末のストレージ節約のため、
+// 選択時にCanvasで長辺を縮小しJPEG再圧縮する（二重防御の一つ目）。
+// スマホの高解像度写真だと1回の圧縮だけでは目標サイズに収まらない
+// ことがあるため、画質→解像度の順に段階的に落としながら、
+// Base64文字列が目標バイト数以下になるまで繰り返す。
 function compressImageFile(file, {
-  maxDimension = 1000,
+  maxDimension = 900,
   minDimension = 500,
-  initialQuality = 0.8,
+  initialQuality = 0.75,
   minQuality = 0.4,
-  targetBytes = 200 * 1024
+  targetBytes = 100 * 1024
 } = {}) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -382,6 +383,144 @@ function compressImageFile(file, {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+// ==========================================
+// 写真ストレージ（IndexedDB）
+// これまで写真のBase64文字列をテキスト用のlocalStorageに直接
+// 保存していたため、写真が数枚〜十数枚に増えるとブラウザの上限
+// （目安5MB程度）にすぐ達し、QuotaExceededErrorで書き込みごと
+// 失敗していた。写真データだけをブラウザ標準の大容量ストレージ
+// IndexedDB（数百MB〜数GB保存可能）に分離し、visits/wishlist側は
+// 「画像ID」という軽い文字列だけを持つようにする。
+// 外部ライブラリは使わず、window.indexedDB を直接使ったシンプルな
+// ユーティリティ（saveImage/getImage/deleteImage）として実装する。
+// ==========================================
+const PHOTO_DB_NAME = 'odekake_photos_db';
+const PHOTO_DB_VERSION = 1;
+const PHOTO_STORE_NAME = 'photos';
+
+let photoDbPromise = null;
+function openPhotoDb() {
+  if (photoDbPromise) return photoDbPromise;
+  photoDbPromise = new Promise((resolve, reject) => {
+    if (!window.indexedDB) {
+      reject(new Error('このブラウザはIndexedDBに対応していません'));
+      return;
+    }
+    const req = window.indexedDB.open(PHOTO_DB_NAME, PHOTO_DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(PHOTO_STORE_NAME)) {
+        db.createObjectStore(PHOTO_STORE_NAME);
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return photoDbPromise;
+}
+
+// 画像ID（キー）を指定してBase64データURLを保存する
+function saveImage(id, dataUrl) {
+  return openPhotoDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(PHOTO_STORE_NAME, 'readwrite');
+    tx.objectStore(PHOTO_STORE_NAME).put(dataUrl, id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+
+// 画像IDからBase64データURLを取得する（無ければnull）
+function getImage(id) {
+  return openPhotoDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(PHOTO_STORE_NAME, 'readonly');
+    const req = tx.objectStore(PHOTO_STORE_NAME).get(id);
+    req.onsuccess = () => resolve(req.result ?? null);
+    req.onerror = () => reject(req.error);
+  }));
+}
+
+// 画像IDを指定して削除する（存在しないキーの削除も静かに成功する）
+function deleteImage(id) {
+  return openPhotoDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(PHOTO_STORE_NAME, 'readwrite');
+    tx.objectStore(PHOTO_STORE_NAME).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+
+// 訪問記録・行きたい項目が削除される際、紐づく写真もIndexedDBから
+// まとめて削除する。過去にlocalStorageへ直接Base64を保存していた
+// 古い形式のデータ（"data:"で始まる文字列）はIndexedDBには存在
+// しないため、そのままスキップする（エラーにはしない）。
+function deleteImagesForIds(ids) {
+  (ids || []).forEach(id => {
+    if (id && typeof id === 'string' && !id.startsWith('data:')) {
+      deleteImage(id).catch(err => console.warn('Failed to delete image:', id, err));
+    }
+  });
+}
+
+// 画像IDの解決結果を使い回すための簡易メモリキャッシュ。
+// 同じ写真が複数箇所（カード・カレンダー行・ライトボックスなど）で
+// 表示されるたびにIndexedDBへ読みに行くのを避ける。
+const photoSrcCache = new Map();
+
+// 画像ID（またはフォールバック用の古いdata:URL）から、実際に
+// <img>に渡せるsrc文字列を非同期に解決するフック。
+// 戻り値: undefined=読み込み中 / null=データなし・失敗 / string=src
+function usePhotoSrc(id) {
+  const [src, setSrc] = useState(() => {
+    if (!id) return null;
+    if (id.startsWith('data:')) return id; // 旧形式：そのまま使える
+    return photoSrcCache.has(id) ? photoSrcCache.get(id) : undefined;
+  });
+
+  useEffect(() => {
+    if (!id) {
+      setSrc(null);
+      return;
+    }
+    if (id.startsWith('data:')) {
+      setSrc(id);
+      return;
+    }
+    if (photoSrcCache.has(id)) {
+      setSrc(photoSrcCache.get(id));
+      return;
+    }
+    let cancelled = false;
+    setSrc(undefined);
+    getImage(id)
+      .then(dataUrl => {
+        if (cancelled) return;
+        photoSrcCache.set(id, dataUrl);
+        setSrc(dataUrl);
+      })
+      .catch(err => {
+        console.warn('Failed to load image from IndexedDB:', id, err);
+        if (cancelled) return;
+        photoSrcCache.set(id, null);
+        setSrc(null);
+      });
+    return () => { cancelled = true; };
+  }, [id]);
+
+  return src;
+}
+
+// 画像ID（またはdata:URL）を受け取り、IndexedDBから読み込んで表示する
+// 共通コンポーネント。読み込み中・データなしの間も呼び出し元の
+// className分のサイズを保つプレースホルダーを出し、レイアウトが
+// カクつかないようにする。
+function StoredImage({ id, alt = '', className = '', onClick }) {
+  const src = usePhotoSrc(id);
+  if (!src) {
+    return <div className={`${className} bg-neutral-100`} onClick={onClick} />;
+  }
+  return <img src={src} alt={alt} className={className} onClick={onClick} />;
 }
 
 // ==========================================
@@ -1140,10 +1279,12 @@ function OdekakeLogMain() {
       title: '場所と記録の削除',
       message: 'この場所と関連するすべての訪問履歴が完全に削除されます。よろしいですか？',
       onConfirm: () => {
+        const removedVisits = visits.filter(v => v.placeId === placeId);
         const nextPlaces = places.filter(p => p.id !== placeId);
         const nextVisits = visits.filter(v => v.placeId !== placeId);
         savePlaces(nextPlaces);
         saveVisits(nextVisits);
+        removedVisits.forEach(v => deleteImagesForIds(v.photos));
         if (selectedPlaceDetail?.id === placeId) setSelectedPlaceDetail(null);
       }
     });
@@ -1195,7 +1336,9 @@ function OdekakeLogMain() {
       title: '行きたい場所の削除',
       message: 'この行きたい場所をリストから削除してもよろしいですか？',
       onConfirm: () => {
+        const removed = wishlist.find(w => w.id === wishId);
         saveWishlist(wishlist.filter(w => w.id !== wishId));
+        deleteImagesForIds(removed?.photos);
       }
     });
   };
@@ -2119,7 +2262,12 @@ function OdekakeLogMain() {
               saveVisits(updatedVisits);
 
               if (convertingWishlistId) {
+                // 行きたい項目に登録されていた写真は新しい訪問記録には
+                // 引き継がれない（新規に選び直す）ため、リストからこの
+                // 項目を消すのに合わせてIndexedDB上の写真も削除する。
+                const convertedWish = wishlist.find(w => w.id === convertingWishlistId);
                 saveWishlist(wishlist.filter(w => w.id !== convertingWishlistId));
+                deleteImagesForIds(convertedWish?.photos);
                 showToast('行きたい場所リストから訪問記録に変換しました。');
               }
 
@@ -2795,23 +2943,45 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
 
     setIsProcessingPhotos(true);
     try {
-      const compressed = await Promise.all(
-        files.slice(0, remainingSlots).map(f => compressImageFile(f))
-      );
-      setPhotos(prev => [...prev, ...compressed]);
+      const targetFiles = files.slice(0, remainingSlots);
+      const newIds = [];
+      let failedCount = 0;
+
+      // 1枚ずつ圧縮してIndexedDBに保存する。フォームの状態(photos)には
+      // 巨大なBase64文字列ではなく軽量な画像IDだけを持たせる。ある1枚の
+      // 保存に失敗しても他の写真の処理やテキスト記録の保存には影響しない
+      // よう、ファイルごとにtry-catchする（要件4：安全なエラー処理）。
+      for (const file of targetFiles) {
+        try {
+          const dataUrl = await compressImageFile(file);
+          const id = `img_${generateUUID()}`;
+          await saveImage(id, dataUrl);
+          newIds.push(id);
+        } catch (err) {
+          console.warn('Failed to process/save photo:', err);
+          failedCount += 1;
+        }
+      }
+
+      if (newIds.length > 0) {
+        setPhotos(prev => [...prev, ...newIds]);
+      }
       if (files.length > remainingSlots) {
         onToast?.(`写真は最大${MAX_PHOTOS}枚までのため、一部のみ追加しました。`);
+      } else if (failedCount > 0) {
+        onToast?.(`${failedCount}枚の写真の保存に失敗しました。`);
       }
-    } catch (err) {
-      console.warn('Photo compression failed:', err);
-      onToast?.('写真の読み込みに失敗しました。');
     } finally {
       setIsProcessingPhotos(false);
     }
   };
 
   const handleRemovePhoto = (index) => {
-    setPhotos(prev => prev.filter((_, i) => i !== index));
+    setPhotos(prev => {
+      const removed = prev[index];
+      if (removed) deleteImagesForIds([removed]);
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const handleSubmit = (e) => {
@@ -3065,7 +3235,7 @@ function RecordFormModal({ isOpen, onClose, initialVisit, initialPlace, initialD
             <div className="flex gap-2 flex-wrap">
               {photos.map((src, idx) => (
                 <div key={idx} className="relative w-12 h-12 rounded-lg overflow-hidden border border-neutral-200 bg-neutral-100">
-                  <img src={src} alt={`写真${idx + 1}`} className="w-full h-full object-cover" />
+                  <StoredImage id={src} alt={`写真${idx + 1}`} className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={() => handleRemovePhoto(idx)}
@@ -3180,8 +3350,11 @@ function StarRating({ rating = 0, sizeClass = 'w-3 h-3' }) {
 // ==========================================
 // 写真の拡大表示（ライトボックス）：タイムライン・詳細画面で共通利用
 // ==========================================
-function PhotoLightbox({ src, onClose }) {
-  if (!src) return null;
+// photoIdはIndexedDB上の画像ID（または旧形式のdata:URL）を受け取り、
+// usePhotoSrcで実際のsrcに解決してから表示する。
+function PhotoLightbox({ photoId, onClose }) {
+  const src = usePhotoSrc(photoId);
+  if (!photoId) return null;
   return (
     <div
       className="fixed inset-0 z-[60] bg-black/85 flex items-center justify-center p-6"
@@ -3193,12 +3366,16 @@ function PhotoLightbox({ src, onClose }) {
       >
         <X className="w-[29px] h-[29px]" />
       </button>
-      <img
-        src={src}
-        alt=""
-        className="max-w-full max-h-full rounded-xl object-contain"
-        onClick={(e) => e.stopPropagation()}
-      />
+      {src ? (
+        <img
+          src={src}
+          alt=""
+          className="max-w-full max-h-full rounded-xl object-contain"
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : (
+        <p className="text-white/70 text-xs" onClick={(e) => e.stopPropagation()}>読み込み中...</p>
+      )}
     </div>
   );
 }
@@ -3231,7 +3408,7 @@ function CoverPhotoPicker({ photos, current, onSelect, onClose }) {
               onClick={() => { onSelect(src); onClose(); }}
               className={`w-16 h-16 rounded-xl overflow-hidden border-2 ${current === src ? 'border-sky-500' : 'border-transparent'}`}
             >
-              <img src={src} alt="" className="w-full h-full object-cover" />
+              <StoredImage id={src} alt="" className="w-full h-full object-cover" />
             </button>
           ))}
         </div>
@@ -3300,7 +3477,7 @@ function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit }) {
               }}
               className="relative w-11 h-11 rounded-lg overflow-hidden border border-neutral-200 bg-neutral-100"
             >
-              <img src={item.photos[0]} alt="" className="w-full h-full object-cover" />
+              <StoredImage id={item.photos[0]} alt="" className="w-full h-full object-cover" />
               {item.photos.length > 1 && (
                 <span className="absolute bottom-0 right-0 bg-black/60 text-white text-[8px] font-bold px-1 leading-[14px] rounded-tl">
                   +{item.photos.length - 1}
@@ -3339,7 +3516,7 @@ function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit }) {
         </div>
       </div>
     </div>
-    <PhotoLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+    <PhotoLightbox photoId={lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </>
   );
 }
@@ -3360,7 +3537,7 @@ function TripSummaryCard({ summary, onOpen }) {
     >
       {firstPhoto && (
         <div className="w-full h-28 bg-neutral-100">
-          <img src={firstPhoto} alt="" className="w-full h-full object-cover" />
+          <StoredImage id={firstPhoto} alt="" className="w-full h-full object-cover" />
         </div>
       )}
       <div className="p-4">
@@ -3439,7 +3616,7 @@ function AreaSummaryCard({ area, onOpen, onJumpToMap, coverPhoto, onSetCoverPhot
     >
       {displayPhoto && (
         <div className="relative w-full h-20 bg-neutral-100">
-          <img src={displayPhoto} alt="" className="w-full h-full object-cover" />
+          <StoredImage id={displayPhoto} alt="" className="w-full h-full object-cover" />
           {allPhotos.length > 1 && onSetCoverPhoto && (
             <button
               onClick={(e) => { e.stopPropagation(); setShowCoverPicker(true); }}
@@ -3675,7 +3852,7 @@ function CalendarVisitRow({ item, onClick }) {
       className="bg-neutral-50 rounded-xl p-3 border border-neutral-150 cursor-pointer hover:border-neutral-300 transition-all flex items-start gap-2.5"
     >
       {item.photos && item.photos.length > 0 ? (
-        <img src={item.photos[0]} alt="" className="w-11 h-11 rounded-lg object-cover flex-shrink-0 border border-neutral-200" />
+        <StoredImage id={item.photos[0]} alt="" className="w-11 h-11 rounded-lg object-cover flex-shrink-0 border border-neutral-200" />
       ) : (
         <div className={`w-11 h-11 rounded-lg flex-shrink-0 flex items-center justify-center ${cat.bg}`}>
           <cat.icon className={`w-[25px] h-[25px] ${cat.text}`} />
@@ -3837,7 +4014,7 @@ function TripDetailModal({ trip, period, items, heroPhoto, isMapsLoaded, onClose
             自然にフォールバックする。 */}
         {heroPhoto ? (
           <div className="relative h-40 flex-shrink-0">
-            <img src={heroPhoto} alt="" className="w-full h-full object-cover" />
+            <StoredImage id={heroPhoto} alt="" className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/0" />
             <div className="absolute top-3 right-3 flex items-center gap-1.5">
               {allPhotos.length > 1 && (
@@ -4132,7 +4309,7 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onEditVisit, onDeletePl
                         onClick={() => setLightboxSrc(src)}
                         className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-neutral-200 snap-center"
                       >
-                        <img src={src} alt={`${formatDateWithWeekday(latestVisit.date)}の写真${idx + 1}`} className="w-full h-full object-cover" />
+                        <StoredImage id={src} alt={`${formatDateWithWeekday(latestVisit.date)}の写真${idx + 1}`} className="w-full h-full object-cover" />
                       </button>
                     ))}
                   </div>
@@ -4153,7 +4330,7 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onEditVisit, onDeletePl
         </div>
       </div>
 
-      <PhotoLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+      <PhotoLightbox photoId={lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </div>
   );
 }
