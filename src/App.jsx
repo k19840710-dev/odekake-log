@@ -1451,10 +1451,10 @@ function OdekakeLogMain() {
               区切り線で別グループだと分かるようにする。 */}
           {(activeTab === 'logs' || activeTab === 'wishlist') && (
             <div className="mb-4 space-y-2">
-              {/* 検索バーは広い画面でも間延びしないようmd以上で幅を
-                  絞るが、下のカテゴリーピルは同じ制約を受けず全幅を
-                  使えるようにする（別のdivに分けたのはこのため）。 */}
-              <div className="relative md:max-w-md">
+              {/* 検索バー：下のカード一覧（2列グリッド）と同じ最大幅まで
+                  全幅に伸ばす。中途半端に狭いまま右側だけ余白が残る
+                  ことのないようにする。 */}
+              <div className="relative">
                 <Search className="w-[21px] h-[21px] absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                 <input
                   type="text"
@@ -3537,9 +3537,11 @@ function CalendarViewComponent({ calendarMonth, onMonthChange, visitsByDate, sel
   const selectedItems = selectedDate ? (visitsByDate[selectedDate] || []) : [];
 
   return (
-    <div className="space-y-4 lg:max-w-md">
-      {/* 月間カレンダー */}
-      <div className="bg-white rounded-2xl border border-neutral-200/80 shadow-sm p-4">
+    <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-12 md:gap-4 md:items-start">
+      {/* 月間カレンダー：タブレット・PC（md以上）では左カラムに固定し、
+          右カラムの選択日パネルと横並びのスプリットビューにする。
+          スマホでは従来通り縦積みのまま。 */}
+      <div className="md:col-span-5 bg-white rounded-2xl border border-neutral-200/80 shadow-sm p-4">
         <div className="flex items-center justify-between mb-3">
           <button
             onClick={goPrevMonth}
@@ -3612,8 +3614,10 @@ function CalendarViewComponent({ calendarMonth, onMonthChange, visitsByDate, sel
         </div>
       </div>
 
-      {/* 選択中の日付の訪問記録 */}
-      <div className="bg-white rounded-2xl border border-neutral-200/80 shadow-sm p-4">
+      {/* 選択中の日付の訪問記録：md以上では右カラムに配置し、カレンダーを
+          スクロールしなくても日付選択とその日の記録閲覧・追加を
+          同時に行えるようにする。 */}
+      <div className="md:col-span-7 bg-white rounded-2xl border border-neutral-200/80 shadow-sm p-4">
         {selectedDate ? (
           <>
             <div className="text-sm font-bold text-neutral-900 mb-3">
