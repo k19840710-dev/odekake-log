@@ -3349,23 +3349,84 @@ function StarRating({ rating = 0, sizeClass = 'w-3 h-3' }) {
 
 // ==========================================
 // 写真の拡大表示（ライトボックス）：タイムライン・詳細画面で共通利用
+// 1枚目だけでなく、その記録に登録された写真すべてをスワイプ／矢印
+// ボタンで前後に閲覧できるようにする（複数枚投稿しても1枚目しか
+// 見られない問題への対応）。
 // ==========================================
-// photoIdはIndexedDB上の画像ID（または旧形式のdata:URL）を受け取り、
-// usePhotoSrcで実際のsrcに解決してから表示する。
-function PhotoLightbox({ photoId, onClose }) {
-  const src = usePhotoSrc(photoId);
-  if (!photoId) return null;
+// photoIdsはIndexedDB上の画像IDの配列（または旧形式のdata:URLが
+// 混在していてもよい）。startIndexは最初に表示する位置。
+function PhotoLightbox({ photoIds, startIndex = 0, onClose }) {
+  const [index, setIndex] = useState(startIndex);
+  const touchStartXRef = useRef(null);
+  const hasPhotos = !!(photoIds && photoIds.length > 0);
+
+  // 開き直すたびに、タップした写真の位置から表示し直す
+  useEffect(() => {
+    if (hasPhotos) setIndex(startIndex);
+  }, [startIndex, hasPhotos]);
+
+  const currentId = hasPhotos ? photoIds[Math.min(index, photoIds.length - 1)] : null;
+  const src = usePhotoSrc(currentId);
+
+  if (!hasPhotos) return null;
+
+  const goPrev = (e) => {
+    e.stopPropagation();
+    setIndex(i => (i - 1 + photoIds.length) % photoIds.length);
+  };
+  const goNext = (e) => {
+    e.stopPropagation();
+    setIndex(i => (i + 1) % photoIds.length);
+  };
+
+  const handleTouchStart = (e) => {
+    touchStartXRef.current = e.touches[0]?.clientX ?? null;
+  };
+  const handleTouchEnd = (e) => {
+    if (touchStartXRef.current == null) return;
+    const endX = e.changedTouches[0]?.clientX;
+    if (endX != null) {
+      const diff = endX - touchStartXRef.current;
+      if (Math.abs(diff) > 40) {
+        if (diff > 0) goPrev(e); else goNext(e);
+      }
+    }
+    touchStartXRef.current = null;
+  };
+
   return (
     <div
       className="fixed inset-0 z-[60] bg-black/85 flex items-center justify-center p-6"
       onClick={onClose}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 text-white/90 hover:text-white p-2"
+        className="absolute top-4 right-4 text-white/90 hover:text-white p-2 z-10"
       >
         <X className="w-[29px] h-[29px]" />
       </button>
+
+      {photoIds.length > 1 && (
+        <>
+          <button
+            onClick={goPrev}
+            className="absolute left-2 top-1/2 -translate-y-1/2 text-white/85 hover:text-white p-2 bg-black/35 rounded-full"
+            aria-label="前の写真"
+          >
+            <ChevronLeft className="w-[26px] h-[26px]" />
+          </button>
+          <button
+            onClick={goNext}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-white/85 hover:text-white p-2 bg-black/35 rounded-full"
+            aria-label="次の写真"
+          >
+            <ChevronRight className="w-[26px] h-[26px]" />
+          </button>
+        </>
+      )}
+
       {src ? (
         <img
           src={src}
@@ -3375,6 +3436,12 @@ function PhotoLightbox({ photoId, onClose }) {
         />
       ) : (
         <p className="text-white/70 text-xs" onClick={(e) => e.stopPropagation()}>読み込み中...</p>
+      )}
+
+      {photoIds.length > 1 && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/85 text-xs font-bold bg-black/40 px-2.5 py-1 rounded-full">
+          {index + 1} / {photoIds.length}
+        </div>
       )}
     </div>
   );
@@ -3424,7 +3491,8 @@ function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit }) {
   const cat = CATEGORIES[item.place.category] || CATEGORIES.other;
   const formattedDate = formatDateWithWeekday(item.date);
   const relativeDays = getRelativeDays(item.date);
-  const [lightboxSrc, setLightboxSrc] = useState(null);
+  // ライトボックスで開いている写真のインデックス。nullなら非表示。
+  const [lightboxIndex, setLightboxIndex] = useState(null);
 
   return (
     <>
@@ -3468,12 +3536,13 @@ function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit }) {
         <div className="flex flex-col items-end gap-1 flex-shrink-0">
           {/* 写真がある場合のみ、控えめに1枚目をサムネイル表示。
               タップでライトボックス拡大表示（カード自体のタップとは
-              別動作にするためstopPropagation） */}
+              別動作にするためstopPropagation）。2枚目以降はライト
+              ボックス内のスワイプ／矢印ボタンで閲覧できる。 */}
           {item.photos && item.photos.length > 0 && (
             <div
               onClick={(e) => {
                 e.stopPropagation();
-                setLightboxSrc(item.photos[0]);
+                setLightboxIndex(0);
               }}
               className="relative w-11 h-11 rounded-lg overflow-hidden border border-neutral-200 bg-neutral-100"
             >
@@ -3516,7 +3585,11 @@ function VisitCard({ item, onOpenDetail, onJumpToMap, onEdit }) {
         </div>
       </div>
     </div>
-    <PhotoLightbox photoId={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+    <PhotoLightbox
+      photoIds={lightboxIndex !== null ? item.photos : null}
+      startIndex={lightboxIndex || 0}
+      onClose={() => setLightboxIndex(null)}
+    />
     </>
   );
 }
@@ -4217,7 +4290,8 @@ function TripFormModal({ onClose, onSave }) {
 // 場所詳細モーダル
 // ==========================================
 function PlaceDetailModal({ place, onClose, onJumpToMap, onEditVisit, onDeletePlace }) {
-  const [lightboxSrc, setLightboxSrc] = useState(null);
+  // ライトボックスで開いている写真のインデックス。nullなら非表示。
+  const [lightboxIndex, setLightboxIndex] = useState(null);
 
   if (!place) return null;
   const cat = CATEGORIES[place.category] || CATEGORIES.other;
@@ -4306,7 +4380,7 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onEditVisit, onDeletePl
                       <button
                         key={idx}
                         type="button"
-                        onClick={() => setLightboxSrc(src)}
+                        onClick={() => setLightboxIndex(idx)}
                         className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-neutral-200 snap-center"
                       >
                         <StoredImage id={src} alt={`${formatDateWithWeekday(latestVisit.date)}の写真${idx + 1}`} className="w-full h-full object-cover" />
@@ -4330,7 +4404,11 @@ function PlaceDetailModal({ place, onClose, onJumpToMap, onEditVisit, onDeletePl
         </div>
       </div>
 
-      <PhotoLightbox photoId={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+      <PhotoLightbox
+        photoIds={lightboxIndex !== null ? latestVisit?.photos : null}
+        startIndex={lightboxIndex || 0}
+        onClose={() => setLightboxIndex(null)}
+      />
     </div>
   );
 }
